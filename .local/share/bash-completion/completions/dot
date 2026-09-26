@@ -1,0 +1,37 @@
+# bash completion for dot (autoloaded by bash-completion from this directory).
+# dot wraps git against the bare dotfiles repo: reuse git's completion,
+# pointed at that repo, and add dot's own subcommands.
+
+_dot() {
+    local cur=${COMP_WORDS[COMP_CWORD]}
+
+    case ${COMP_WORDS[1]} in
+        secrets)
+            if ((COMP_CWORD == 2)); then
+                mapfile -t COMPREPLY < <(compgen -W "pull push status" -- "$cur")
+            else
+                mapfile -t COMPREPLY < <(compgen -W \
+                    "$(sed -nE 's/^\s*"([^|"]+)\|.*/\1/p' ~/.local/bin/dot)" -- "$cur")
+            fi
+            COMPREPLY=("${COMPREPLY[@]/%/ }")
+            return
+            ;;
+        bootstrap | setup)
+            ((COMP_CWORD > 1)) && return
+            ;;
+    esac
+
+    if ! declare -F __git_main >/dev/null; then
+        _comp_load git 2>/dev/null || __load_completion git 2>/dev/null || return
+    fi
+    local -x GIT_DIR=$HOME/.dotfiles GIT_WORK_TREE=$HOME
+    __git_func_wrap __git_main
+
+    if ((COMP_CWORD == 1)); then
+        local extra
+        mapfile -t extra < <(compgen -W "bootstrap setup secrets" -- "$cur")
+        COMPREPLY+=("${extra[@]/%/ }")
+    fi
+}
+
+complete -o bashdefault -o default -o nospace -F _dot dot
