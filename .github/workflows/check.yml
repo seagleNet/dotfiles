@@ -1,0 +1,40 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Scan full history for secrets
+        run: >-
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1
+          git /repo --no-banner --redact --verbose
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Lint shell scripts and dotfiles
+        run: |
+          sc() { docker run --rm -v "$PWD:/mnt:ro" -w /mnt koalaman/shellcheck:v0.11.0 -S warning -e SC1090,SC1091 "$@"; }
+          sc .local/bin/dot .local/bin/arch-setup .local/bin/debian-setup
+          sc -s bash .local/share/bash-completion/completions/dot .aliases .bashrc
+          sc -s sh .profile .config/shell/path.sh
+
+  fish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install fish
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fish
+      - name: Syntax-check fish files
+        run: git ls-files -z '*.fish' | xargs -0 -n1 fish --no-execute

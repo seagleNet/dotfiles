@@ -57,8 +57,8 @@ curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux
 
 # formatters/linters not packaged in Debian
 # markdownlint-cli2 0.23+ needs node 22; trixie ships node 20
-markdownlint=markdownlint-cli2
-(($(node -p 'process.versions.node.split(".")[0]') < 22)) && markdownlint=markdownlint-cli2@0.22
+markdownlint="markdownlint-cli2"
+(($(node -p 'process.versions.node.split(".")[0]') < 22)) && markdownlint="markdownlint-cli2@0.22"
 npm install -g prettier "$markdownlint" @ast-grep/cli @johnnymorganz/stylua-bin neovim
 go install github.com/google/yamlfmt/cmd/yamlfmt@latest
 

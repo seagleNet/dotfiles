@@ -3,7 +3,8 @@
 #
 #   dot <git args>        run git against the dotfiles repo (dot status, dot add, ...)
 #   dot bootstrap [url]   clone the repo onto a fresh machine and run setup
-#   dot setup             (re)apply machine setup: fisher plugins, omarchy plugins
+#   dot setup             (re)apply machine setup: pre-commit hook, fisher plugins,
+#                         omarchy plugins
 #   dot secrets pull|push|status [name...]
 #                         sync private files with Bitwarden secure notes
 set -euo pipefail
@@ -19,6 +20,7 @@ SECRETS=(
     "ssh-work|.ssh/config.d/work"
     "gitconfig-work|.gitconfig-work"
     "bashrc-work|.bashrc_work"
+    "denylist|.config/dotfiles/denylist"
 )
 
 g() { git --git-dir="$DOT_DIR" --work-tree="$HOME" "$@"; }
@@ -50,8 +52,8 @@ cmd_bootstrap() {
     write_excludes
 
     # Back up any existing files that would be overwritten by checkout.
-    local backup
-    backup="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)" f
+    local backup f
+    backup="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
     while IFS= read -r f; do
         [[ -e $HOME/$f || -L $HOME/$f ]] || continue
         mkdir -p "$backup/$(dirname "$f")"
@@ -64,13 +66,36 @@ cmd_bootstrap() {
     info "done - run 'dot secrets pull' to fetch private config from Bitwarden"
 }
 
+# Refuse commits whose added lines match the private denylist (regexes, one per
+# line, case-insensitive). The list itself is a secret, so it can't live in the
+# public repo; without it the hook does nothing.
+write_hook() {
+    mkdir -p "$DOT_DIR/hooks"
+    cat >"$DOT_DIR/hooks/pre-commit" <<'EOF'
+#!/usr/bin/env bash
+# installed by `dot setup`
+list="$HOME/.config/dotfiles/denylist"
+[[ -s $list ]] || exit 0
+patterns=$(grep -Ev '^[[:space:]]*(#|$)' "$list") || exit 0
+if hits=$(git diff --cached -U0 --no-color | grep -E '^\+' | grep -Ev '^\+\+\+ ' |
+    grep -inE -- "$patterns"); then
+    printf '\033[1;31m::\033[0m commit blocked, staged lines match %s:\n%s\n' "$list" "$hits" >&2
+    exit 1
+fi
+EOF
+    chmod +x "$DOT_DIR/hooks/pre-commit"
+}
+
 cmd_setup() {
     write_excludes
+    write_hook
     chmod 700 "$HOME/.ssh" 2>/dev/null || true
 
+    # stdin from /dev/null: fisher reads plugin names from a non-tty stdin, which
+    # under `curl ... | bash` would be the rest of this script
     if command -v fish >/dev/null; then
         info "installing fisher plugins"
-        fish -c 'type -q fisher; or curl -fsSL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source; fisher update' ||
+        fish -c 'type -q fisher; or curl -fsSL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source; fisher update' </dev/null ||
             warn "fisher update failed"
     fi
 
@@ -80,7 +105,7 @@ cmd_setup() {
         while IFS= read -r url; do
             [[ -z $url || $url == \#* ]] && continue
             omarchy plugin list 2>/dev/null | grep -q "$(basename "$url" .git | sed 's/^omarchy-//')" && continue
-            omarchy plugin add "$url" --yes || warn "failed to add $url"
+            omarchy plugin add "$url" --yes </dev/null || warn "failed to add $url"
         done <"$list"
     fi
 }
