@@ -15,6 +15,8 @@
 #                         register a file as a secret and push it to Bitwarden
 #   dot secrets rm [--keep-vault] <name>
 #                         unregister a secret, moving its item to the Bitwarden trash
+#
+# Aliases: secret = secrets, ls = list, remove = rm, st = status
 set -euo pipefail
 
 DOT_DIR="${DOT_DIR:-$HOME/.dotfiles}"
@@ -476,6 +478,11 @@ cmd_secrets() {
     local action="${1:-status}"
     shift || true
     case $action in
+    ls) action=list ;;
+    remove) action="rm" ;;
+    st) action=status ;;
+    esac
+    case $action in
     add | rm | status)
         "secrets_$action" "$@"
         return
@@ -524,7 +531,7 @@ bootstrap)
     cmd_bootstrap "$@"
     ;;
 setup) cmd_setup ;;
-secrets)
+secrets | secret)
     shift
     cmd_secrets "$@"
     ;;

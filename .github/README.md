@@ -108,6 +108,9 @@ dot secrets add ssh-key ~/.ssh/id_ed25519
 dot secrets rm ssh-key
 ```
 
+Aliases: `dot secret` for `dot secrets`, `ls` for `list`, `remove` for `rm`,
+`st` for `status`.
+
 `status` compares notes by content and attachments by their checksum, so it
 downloads nothing. It can't know which side changed (there's no sync history),
 so a mismatch shows as `differs`: push if you edited the file here, pull if it

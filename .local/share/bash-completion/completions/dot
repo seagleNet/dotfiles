@@ -6,7 +6,7 @@ _dot() {
     local cur=${COMP_WORDS[COMP_CWORD]}
 
     case ${COMP_WORDS[1]} in
-    secrets)
+    secrets | secret)
         if ((COMP_CWORD == 2)); then
             mapfile -t COMPREPLY < <(compgen -W "add list pull push rm status" -- "$cur")
         elif [[ ${COMP_WORDS[2]} == add ]]; then
@@ -19,7 +19,7 @@ _dot() {
             local words
             words=$(sed -nE 's/^[[:space:]]*([^#[:space:]][^[:space:]]*).*/\1/p' \
                 ~/.config/dotfiles/secrets 2>/dev/null)
-            [[ ${COMP_WORDS[2]} != rm ]] || words+=" --keep-vault"
+            [[ ${COMP_WORDS[2]} != @(rm|remove) ]] || words+=" --keep-vault"
             mapfile -t COMPREPLY < <(compgen -W "$words" -- "$cur")
         fi
         COMPREPLY=("${COMPREPLY[@]/%/ }")
