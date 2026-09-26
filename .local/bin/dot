@@ -15,174 +15,190 @@ DOT_PUSH_URL="git@github.com:seagleNet/dotfiles.git"
 # Private files never tracked in git. Each is stored in Bitwarden as a secure
 # note named "dotfiles/<name>". Format: name|path relative to $HOME
 SECRETS=(
-  "ssh-private|.ssh/config.d/private"
-  "ssh-work|.ssh/config.d/work"
-  "gitconfig-work|.gitconfig-work"
-  "bashrc-work|.bashrc_work"
+    "ssh-private|.ssh/config.d/private"
+    "ssh-work|.ssh/config.d/work"
+    "gitconfig-work|.gitconfig-work"
+    "bashrc-work|.bashrc_work"
 )
 
 g() { git --git-dir="$DOT_DIR" --work-tree="$HOME" "$@"; }
 info() { printf '\033[1;34m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m::\033[0m %s\n' "$*" >&2; }
-die() { printf '\033[1;31m::\033[0m %s\n' "$*" >&2; exit 1; }
+die() {
+    printf '\033[1;31m::\033[0m %s\n' "$*" >&2
+    exit 1
+}
 
 # Keep secret paths ignored so a stray `dot add` refuses them.
 write_excludes() {
-  local entry
-  {
-    echo "# managed by dot - secret files, see 'dot secrets'"
-    for entry in "${SECRETS[@]}"; do echo "/${entry#*|}"; done
-  } >"$DOT_DIR/info/exclude"
+    local entry
+    {
+        echo "# managed by dot - secret files, see 'dot secrets'"
+        for entry in "${SECRETS[@]}"; do echo "/${entry#*|}"; done
+    } >"$DOT_DIR/info/exclude"
 }
 
 cmd_bootstrap() {
-  local url="${1:-$DOT_URL}"
-  [[ -e $DOT_DIR ]] && die "$DOT_DIR already exists"
-  command -v git >/dev/null || die "git is required"
+    local url="${1:-$DOT_URL}"
+    [[ -e $DOT_DIR ]] && die "$DOT_DIR already exists"
+    command -v git >/dev/null || die "git is required"
 
-  info "cloning $url"
-  git clone --bare "$url" "$DOT_DIR"
-  g config status.showUntrackedFiles no
-  [[ $url == "$DOT_URL" ]] && g remote set-url --push origin "$DOT_PUSH_URL"
-  write_excludes
+    info "cloning $url"
+    git clone --bare "$url" "$DOT_DIR"
+    g config status.showUntrackedFiles no
+    [[ $url == "$DOT_URL" ]] && g remote set-url --push origin "$DOT_PUSH_URL"
+    write_excludes
 
-  # Back up any existing files that would be overwritten by checkout.
-  local backup="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)" f
-  while IFS= read -r f; do
-    [[ -e $HOME/$f || -L $HOME/$f ]] || continue
-    mkdir -p "$backup/$(dirname "$f")"
-    mv "$HOME/$f" "$backup/$f"
-  done < <(g ls-tree -r --name-only HEAD)
-  [[ -d $backup ]] && info "backed up existing files to $backup"
+    # Back up any existing files that would be overwritten by checkout.
+    local backup
+    backup="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)" f
+    while IFS= read -r f; do
+        [[ -e $HOME/$f || -L $HOME/$f ]] || continue
+        mkdir -p "$backup/$(dirname "$f")"
+        mv "$HOME/$f" "$backup/$f"
+    done < <(g ls-tree -r --name-only HEAD)
+    [[ -d $backup ]] && info "backed up existing files to $backup"
 
-  g checkout
-  cmd_setup
-  info "done - run 'dot secrets pull' to fetch private config from Bitwarden"
+    g checkout
+    cmd_setup
+    info "done - run 'dot secrets pull' to fetch private config from Bitwarden"
 }
 
 cmd_setup() {
-  write_excludes
-  chmod 700 "$HOME/.ssh" 2>/dev/null || true
+    write_excludes
+    chmod 700 "$HOME/.ssh" 2>/dev/null || true
 
-  if command -v fish >/dev/null; then
-    info "installing fisher plugins"
-    fish -c 'type -q fisher; or curl -fsSL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source; fisher update' ||
-      warn "fisher update failed"
-  fi
+    if command -v fish >/dev/null; then
+        info "installing fisher plugins"
+        fish -c 'type -q fisher; or curl -fsSL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source; fisher update' ||
+            warn "fisher update failed"
+    fi
 
-  local list="$HOME/.config/dotfiles/omarchy-plugins" url
-  if command -v omarchy >/dev/null && [[ -f $list ]]; then
-    info "installing omarchy shell plugins"
-    while IFS= read -r url; do
-      [[ -z $url || $url == \#* ]] && continue
-      omarchy plugin list 2>/dev/null | grep -q "$(basename "$url" .git | sed 's/^omarchy-//')" && continue
-      omarchy plugin add "$url" --yes || warn "failed to add $url"
-    done <"$list"
-  fi
+    local list="$HOME/.config/dotfiles/omarchy-plugins" url
+    if command -v omarchy >/dev/null && [[ -f $list ]]; then
+        info "installing omarchy shell plugins"
+        while IFS= read -r url; do
+            [[ -z $url || $url == \#* ]] && continue
+            omarchy plugin list 2>/dev/null | grep -q "$(basename "$url" .git | sed 's/^omarchy-//')" && continue
+            omarchy plugin add "$url" --yes || warn "failed to add $url"
+        done <"$list"
+    fi
 }
 
 bw_session() {
-  command -v bw >/dev/null || die "bitwarden cli (bw) is not installed"
-  command -v jq >/dev/null || die "jq is required"
-  local status
-  status=$(bw status | jq -r .status)
-  case $status in
+    command -v bw >/dev/null || die "bitwarden cli (bw) is not installed"
+    command -v jq >/dev/null || die "jq is required"
+    local status
+    status=$(bw status | jq -r .status)
+    case $status in
     unauthenticated) die "run 'bw login' first" ;;
     locked)
-      BW_SESSION=$(bw unlock --raw) || die "unlock failed"
-      export BW_SESSION
-      ;;
-  esac
-  bw sync >/dev/null
+        BW_SESSION=$(bw unlock --raw) || die "unlock failed"
+        export BW_SESSION
+        ;;
+    esac
+    bw sync >/dev/null
 }
 
 # Resolve requested names (default: all) to "name|path" entries.
 select_secrets() {
-  local entry name
-  if (($# == 0)); then
-    printf '%s\n' "${SECRETS[@]}"
-    return
-  fi
-  for name in "$@"; do
-    for entry in "${SECRETS[@]}"; do
-      [[ ${entry%%|*} == "$name" ]] && { echo "$entry"; continue 2; }
+    local entry name
+    if (($# == 0)); then
+        printf '%s\n' "${SECRETS[@]}"
+        return
+    fi
+    for name in "$@"; do
+        for entry in "${SECRETS[@]}"; do
+            [[ ${entry%%|*} == "$name" ]] && {
+                echo "$entry"
+                continue 2
+            }
+        done
+        die "unknown secret '$name' (known: $(printf '%s ' "${SECRETS[@]%%|*}"))"
     done
-    die "unknown secret '$name' (known: $(printf '%s ' "${SECRETS[@]%%|*}"))"
-  done
 }
 
 # Every bw call starts a node process (~1s), so fetch all dotfiles notes once.
 load_items() {
-  ITEMS=$(bw list items --search dotfiles/)
+    ITEMS=$(bw list items --search dotfiles/)
 }
 
 # Prints the stored item JSON for an exact name match, or nothing.
 item_json() {
-  jq -c --arg n "dotfiles/$1" 'first(.[] | select(.name == $n)) // empty' <<<"$ITEMS"
+    jq -c --arg n "dotfiles/$1" 'first(.[] | select(.name == $n)) // empty' <<<"$ITEMS"
 }
 
 cmd_secrets() {
-  local action="${1:-status}"
-  shift || true
-  local entry name path item tmp
-  local entries
-  mapfile -t entries < <(select_secrets "$@")
+    local action="${1:-status}"
+    shift || true
+    local entry name path item tmp
+    local entries
+    mapfile -t entries < <(select_secrets "$@")
 
-  case $action in
+    case $action in
     status)
-      for entry in "${entries[@]}"; do
-        path="$HOME/${entry#*|}"
-        printf '%-16s %-28s %s\n' "${entry%%|*}" "~/${entry#*|}" "$([[ -f $path ]] && echo present || echo missing)"
-      done
-      ;;
+        for entry in "${entries[@]}"; do
+            path="$HOME/${entry#*|}"
+            printf '%-16s %-28s %s\n' "${entry%%|*}" "$HOME/${entry#*|}" "$([[ -f $path ]] && echo present || echo missing)"
+        done
+        ;;
     pull)
-      bw_session
-      load_items
-      for entry in "${entries[@]}"; do
-        name=${entry%%|*} path="$HOME/${entry#*|}"
-        item=$(item_json "$name")
-        if [[ -z $item ]]; then
-          warn "skipping $name: no 'dotfiles/$name' note in bitwarden"
-          continue
-        fi
-        mkdir -p "$(dirname "$path")"
-        tmp=$(mktemp)
-        jq -j '.notes // ""' <<<"$item" >"$tmp"
-        chmod 600 "$tmp"
-        mv "$tmp" "$path"
-        info "pulled $name -> ~/${entry#*|}"
-      done
-      ;;
+        bw_session
+        load_items
+        for entry in "${entries[@]}"; do
+            name=${entry%%|*} path="$HOME/${entry#*|}"
+            item=$(item_json "$name")
+            if [[ -z $item ]]; then
+                warn "skipping $name: no 'dotfiles/$name' note in bitwarden"
+                continue
+            fi
+            mkdir -p "$(dirname "$path")"
+            tmp=$(mktemp)
+            jq -j '.notes // ""' <<<"$item" >"$tmp"
+            chmod 600 "$tmp"
+            mv "$tmp" "$path"
+            info "pulled $name -> ~/${entry#*|}"
+        done
+        ;;
     push)
-      bw_session
-      load_items
-      for entry in "${entries[@]}"; do
-        name=${entry%%|*} path="$HOME/${entry#*|}"
-        [[ -f $path ]] || { (($# > 0)) && warn "skipping $name: ~/${entry#*|} missing"; continue; }
-        item=$(item_json "$name")
-        if [[ -z $item ]]; then
-          jq -n --arg name "dotfiles/$name" --rawfile n "$path" \
-            '{type: 2, name: $name, notes: $n, secureNote: {type: 0}, organizationId: null,
+        bw_session
+        load_items
+        for entry in "${entries[@]}"; do
+            name=${entry%%|*} path="$HOME/${entry#*|}"
+            [[ -f $path ]] || {
+                (($# > 0)) && warn "skipping $name: ~/${entry#*|} missing"
+                continue
+            }
+            item=$(item_json "$name")
+            if [[ -z $item ]]; then
+                jq -n --arg name "dotfiles/$name" --rawfile n "$path" \
+                    '{type: 2, name: $name, notes: $n, secureNote: {type: 0}, organizationId: null,
               folderId: null, favorite: false, fields: [], reprompt: 0}' |
-            base64 -w0 | bw create item >/dev/null
-          info "created dotfiles/$name"
-        elif jq -e --rawfile n "$path" '.notes == $n' <<<"$item" >/dev/null; then
-          info "unchanged dotfiles/$name"
-        else
-          jq --rawfile n "$path" '.notes = $n' <<<"$item" | base64 -w0 |
-            bw edit item "$(jq -r .id <<<"$item")" >/dev/null
-          info "updated dotfiles/$name"
-        fi
-      done
-      ;;
+                    base64 -w0 | bw create item >/dev/null
+                info "created dotfiles/$name"
+            elif jq -e --rawfile n "$path" '.notes == $n' <<<"$item" >/dev/null; then
+                info "unchanged dotfiles/$name"
+            else
+                jq --rawfile n "$path" '.notes = $n' <<<"$item" | base64 -w0 |
+                    bw edit item "$(jq -r .id <<<"$item")" >/dev/null
+                info "updated dotfiles/$name"
+            fi
+        done
+        ;;
     *) die "usage: dot secrets pull|push|status [name...]" ;;
-  esac
+    esac
 }
 
 case "${1:-}" in
-  bootstrap) shift; cmd_bootstrap "$@" ;;
-  setup) cmd_setup ;;
-  secrets) shift; cmd_secrets "$@" ;;
-  "") g status ;;
-  *) g "$@" ;;
+bootstrap)
+    shift
+    cmd_bootstrap "$@"
+    ;;
+setup) cmd_setup ;;
+secrets)
+    shift
+    cmd_secrets "$@"
+    ;;
+"") g status ;;
+*) g "$@" ;;
 esac
