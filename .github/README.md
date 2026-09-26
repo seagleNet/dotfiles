@@ -10,24 +10,56 @@ Untracked files are hidden, so `dot status` only shows tracked changes.
 
 ## New machine
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/seagleNet/dotfiles/master/.local/bin/dot | bash -s -- bootstrap
-```
+1. **Prerequisites** — install fish before bootstrapping so `dot setup` can set up the fisher plugins:
 
-This clones into `~/.dotfiles`, moves conflicting files to `~/.dotfiles-backup/<timestamp>/`,
-checks out, then runs `dot setup` (fisher plugins, Omarchy shell plugins).
-Pushes go over SSH (`git@github.com:seagleNet/dotfiles.git`).
+   ```bash
+   sudo pacman -S --needed git curl jq fish        # Arch / WSL (Omarchy: usually already there)
+   sudo apt install git curl jq fish unzip         # Debian
+   ```
 
-Prerequisites: `git curl jq fish` (install fish first so fisher plugins get set up).
+2. **Bootstrap**
 
-Then install the tools the configs expect:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/seagleNet/dotfiles/master/.local/bin/dot | bash -s -- bootstrap
+   ```
 
-```bash
-arch-setup      # Arch, WSL, Omarchy (pacman)
-debian-setup    # Debian trixie+ (apt, plus upstream nvim in /opt, npm and go for the rest)
-```
+   Clones into `~/.dotfiles` over HTTPS, moves files that would be overwritten to
+   `~/.dotfiles-backup/<timestamp>/`, checks out, then runs `dot setup`
+   (fisher plugins; on Omarchy also the shell plugins from
+   `~/.config/dotfiles/omarchy-plugins`). Pushes go over SSH.
 
-Then `bw login && dot secrets pull`, and copy or create an SSH key for pushing.
+3. **Open a new shell** so `~/.local/bin` is on `PATH`. Optionally `chsh -s /usr/bin/fish`.
+
+4. **Install the tools the configs expect**
+
+   ```bash
+   arch-setup      # Arch, WSL, Omarchy (pacman)
+   debian-setup    # Debian trixie+ (apt, upstream nvim in /opt, npm and go for the rest)
+   ```
+
+5. **Bitwarden CLI**
+
+   ```bash
+   omarchy pkg aur add bitwarden-cli-bin           # Omarchy (or: yay -S bitwarden-cli-bin)
+   curl -fsSLo /tmp/bw.zip "https://vault.bitwarden.com/download/?app=cli&platform=linux" \
+     && unzip -o /tmp/bw.zip -d ~/.local/bin && chmod +x ~/.local/bin/bw   # Debian
+   ```
+
+   Use the standalone build: Arch's `bitwarden-cli` package needs `nodejs-lts-*`,
+   which conflicts with `nodejs`.
+
+6. **Private config**
+
+   ```bash
+   bw login
+   dot secrets pull                # all, or only what this machine needs: dot secrets pull ssh-private
+   ```
+
+7. **SSH key** — private keys aren't part of the dotfiles. Copy them over or create a
+   new one and add it to GitHub; it's needed for `dot push`.
+
+8. **Per machine** — on Omarchy, adjust the untracked `~/.config/hypr/monitors.lua`.
+   Neovim installs its plugins on first start, pinned by `lazy-lock.json`.
 
 ## Daily use
 
@@ -50,7 +82,7 @@ public configs include, and are stored as Bitwarden secure notes named
 | `ssh-private`    | `~/.ssh/config.d/private` | `~/.ssh/config` (`Include config.d/*`) |
 | `ssh-work`       | `~/.ssh/config.d/work`  | `~/.ssh/config` (`Include config.d/*`)  |
 | `gitconfig-work` | `~/.gitconfig-work`     | `~/.gitconfig` (`includeIf gitdir:~/Work/`) |
-| `bashrc-work`    | `~/.bashrc_work`        | `~/.bashrc` (on the work host only)     |
+| `bashrc-work`    | `~/.bashrc_work`        | `~/.bashrc` (the file itself checks for the work host) |
 
 ```bash
 bw login                   # once per machine
@@ -58,6 +90,9 @@ dot secrets status
 dot secrets pull           # Bitwarden -> files (all, or: dot secrets pull ssh-private)
 dot secrets push           # files -> Bitwarden after editing locally
 ```
+
+Each `dot secrets` run asks for the master password. To unlock once per shell:
+`set -gx BW_SESSION (bw unlock --raw)` (fish) or `export BW_SESSION=$(bw unlock --raw)` (bash).
 
 These paths are listed in the repo's `info/exclude`, so `dot add` refuses them.
 Missing files are fine — every include is optional.
