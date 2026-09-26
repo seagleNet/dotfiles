@@ -161,6 +161,111 @@ item_json() {
     jq -c --arg n "dotfiles/$1" 'first(.[] | select(.name == $n)) // empty' <<<"$ITEMS"
 }
 
+# Notes hold at most 10000 encrypted characters (~7.4 KB of text). Larger or
+# binary files go into an attachment on the same item (needs Premium); its
+# notes then carry a marker with the file's checksum and attachment id.
+NOTE_MAX_BYTES=7000
+MARKER_RE='^dot:attachment sha256=([0-9a-f]{64}) id=([^[:space:]]+)'
+
+# True for text files small enough to store as a note.
+fits_note() {
+    (($(wc -c <"$1") <= NOTE_MAX_BYTES)) &&
+        tr -d '\000' <"$1" | cmp -s - "$1" &&
+        iconv -f UTF-8 -t UTF-8 "$1" >/dev/null 2>&1
+}
+
+sha256() { sha256sum "$1" | cut -d' ' -f1; }
+
+# create_item <name> <jq args defining $n>: new secure note, prints its JSON.
+create_item() {
+    local name=$1
+    shift
+    jq -n --arg name "dotfiles/$name" "$@" \
+        '{type: 2, name: $name, notes: $n, secureNote: {type: 0}, organizationId: null,
+          folderId: null, favorite: false, fields: [], reprompt: 0}' |
+        base64 -w0 | bw create item
+}
+
+# set_notes <item json> <jq args defining $n>: replace the notes, prints the item.
+set_notes() {
+    local item=$1
+    shift
+    jq "$@" '.notes = $n' <<<"$item" | base64 -w0 | bw edit item "$(jq -r .id <<<"$item")"
+}
+
+# delete_attachments <item id> <attachment id...>
+delete_attachments() {
+    local item_id=$1 att
+    shift
+    for att in "$@"; do bw delete attachment "$att" --itemid "$item_id" >/dev/null; done
+}
+
+push_secret() {
+    local name=$1 path=$2 item old hash marker new_id
+    item=$(item_json "$name")
+
+    if fits_note "$path"; then
+        if [[ -z $item ]]; then
+            create_item "$name" --rawfile n "$path" >/dev/null
+            info "created dotfiles/$name"
+        elif jq -e --rawfile n "$path" '.notes == $n' <<<"$item" >/dev/null; then
+            info "unchanged dotfiles/$name"
+        else
+            mapfile -t old < <(jq -r '.attachments[]?.id' <<<"$item")
+            set_notes "$item" --rawfile n "$path" >/dev/null
+            # drop attachments left from when the file was too large for a note
+            delete_attachments "$(jq -r .id <<<"$item")" "${old[@]}"
+            info "updated dotfiles/$name"
+        fi
+        return
+    fi
+
+    hash=$(sha256 "$path")
+    if [[ -n $item && $(jq -r '.notes // ""' <<<"$item") =~ $MARKER_RE ]] &&
+        [[ ${BASH_REMATCH[1]} == "$hash" ]] &&
+        jq -e --arg id "${BASH_REMATCH[2]}" 'any(.attachments[]?; .id == $id)' <<<"$item" >/dev/null; then
+        info "unchanged dotfiles/$name (attachment)"
+        return
+    fi
+    [[ -n $item ]] || item=$(create_item "$name" --arg n "dot:attachment pending")
+    mapfile -t old < <(jq -r '.attachments[]?.id' <<<"$item")
+
+    # Upload first, then point the marker at it, then remove old attachments,
+    # so an interrupted push leaves the previous version intact.
+    item=$(bw create attachment --file "$path" --itemid "$(jq -r .id <<<"$item")")
+    new_id=$(jq -r --args '[.attachments[] | select([.id] | inside($ARGS.positional) | not)][0].id // empty' \
+        "${old[@]}" <<<"$item")
+    [[ -n $new_id ]] || die "uploading $name failed"
+    marker="dot:attachment sha256=$hash id=$new_id"$'\n\n'"Stored as an attachment by dot: too large or binary for a note."
+    item=$(set_notes "$item" --arg n "$marker")
+    delete_attachments "$(jq -r .id <<<"$item")" "${old[@]}"
+    info "uploaded dotfiles/$name (attachment, $(wc -c <"$path") bytes)"
+}
+
+pull_secret() {
+    local name=$1 path=$2 item tmp hash
+    item=$(item_json "$name")
+    if [[ -z $item ]]; then
+        warn "skipping $name: no 'dotfiles/$name' note in bitwarden"
+        return
+    fi
+    mkdir -p "$(dirname "$path")"
+    tmp=$(mktemp)
+    if [[ $(jq -r '.notes // ""' <<<"$item") =~ $MARKER_RE ]]; then
+        hash=${BASH_REMATCH[1]}
+        bw get attachment "${BASH_REMATCH[2]}" --itemid "$(jq -r .id <<<"$item")" --output "$tmp" >/dev/null
+        if [[ $(sha256 "$tmp") != "$hash" ]]; then
+            rm -f "$tmp"
+            die "checksum mismatch for $name, ~/${path#"$HOME"/} left unchanged"
+        fi
+    else
+        jq -j '.notes // ""' <<<"$item" >"$tmp"
+    fi
+    chmod 600 "$tmp"
+    mv "$tmp" "$path"
+    info "pulled $name -> ~/${path#"$HOME"/}"
+}
+
 # dot secrets add <name> <file>: register a file under $HOME and push it.
 secrets_add() {
     (($# == 2)) || die "usage: dot secrets add <name> <file>"
@@ -199,7 +304,7 @@ cmd_secrets() {
         secrets_add "$@"
         return
     fi
-    local entry name path item tmp
+    local entry name path
     local entries
     mapfile -t entries < <(select_secrets "$@")
 
@@ -214,18 +319,7 @@ cmd_secrets() {
         bw_session
         load_items
         for entry in "${entries[@]}"; do
-            name=${entry%%|*} path="$HOME/${entry#*|}"
-            item=$(item_json "$name")
-            if [[ -z $item ]]; then
-                warn "skipping $name: no 'dotfiles/$name' note in bitwarden"
-                continue
-            fi
-            mkdir -p "$(dirname "$path")"
-            tmp=$(mktemp)
-            jq -j '.notes // ""' <<<"$item" >"$tmp"
-            chmod 600 "$tmp"
-            mv "$tmp" "$path"
-            info "pulled $name -> ~/${entry#*|}"
+            pull_secret "${entry%%|*}" "$HOME/${entry#*|}"
         done
         ;;
     push)
@@ -237,20 +331,7 @@ cmd_secrets() {
                 (($# > 0)) && warn "skipping $name: ~/${entry#*|} missing"
                 continue
             }
-            item=$(item_json "$name")
-            if [[ -z $item ]]; then
-                jq -n --arg name "dotfiles/$name" --rawfile n "$path" \
-                    '{type: 2, name: $name, notes: $n, secureNote: {type: 0}, organizationId: null,
-              folderId: null, favorite: false, fields: [], reprompt: 0}' |
-                    base64 -w0 | bw create item >/dev/null
-                info "created dotfiles/$name"
-            elif jq -e --rawfile n "$path" '.notes == $n' <<<"$item" >/dev/null; then
-                info "unchanged dotfiles/$name"
-            else
-                jq --rawfile n "$path" '.notes = $n' <<<"$item" | base64 -w0 |
-                    bw edit item "$(jq -r .id <<<"$item")" >/dev/null
-                info "updated dotfiles/$name"
-            fi
+            push_secret "$name" "$path"
         done
         ;;
     *) die "usage: dot secrets pull|push|status [name...] | add <name> <file>" ;;

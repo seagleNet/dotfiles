@@ -89,7 +89,10 @@ public configs include (`~/.ssh/config` has `Include config.d/*`,
 
 The files are listed in [`~/.config/dotfiles/secrets`](../.config/dotfiles/secrets)
 — one `<name> <path>` per line, only names and paths, so it's safe to commit.
-Each file is stored as a Bitwarden secure note named `dotfiles/<name>`.
+Each file is stored as a Bitwarden secure note named `dotfiles/<name>`. Text
+files up to 7000 bytes go into the note itself; larger or binary files become
+an attachment on that note (needs Premium), with the note holding a checksum
+so `push` skips unchanged files and `pull` verifies downloads.
 
 ```bash
 bw login         # once per machine
