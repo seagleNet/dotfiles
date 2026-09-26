@@ -1,0 +1,96 @@
+# aliases & functions
+## sudo
+alias sudo='sudo -E'
+## batcat to bat
+if which batcat >>"${HOME}/.bashrc_missing" 2>&1; then
+  alias bat='batcat'
+fi
+## gcloud
+alias gc='gcloud'
+## fdfind
+if which fdfind >>"${HOME}/.bashrc_missing" 2>&1; then
+  alias fd='fdfind'
+fi
+## vscode
+if which code-oss >>"${HOME}/.bashrc_missing" 2>&1; then
+  alias code='code-oss'
+  alias vscode='code-oss'
+fi
+if [[ -e /opt/visual-studio-code/code ]]; then
+  alias code='/opt/visual-studio-code/code'
+fi
+## ansible-playbook
+alias ap='ansible-playbook'
+## eza
+alias ls="eza"
+## kubecolor
+alias kubectl="kubecolor"
+## kubectl
+alias k='kubectl'
+## kubectx
+alias kcx='kubectx'
+## shell-ctx
+alias ksx='\kubectl shell-ctx'
+## kubens
+alias kns='kubens'
+alias conlist='conjur list -k variable'
+alias conget='conjur variable get -i'
+function conset() {
+  conjur variable set -i "$1" -v "$2"
+}
+## update starship
+function update-starship() {
+  curl -sS https://starship.rs/install.sh | sh
+}
+## update vivaldi widevinecdm & ffmpeg
+function update-vivaldi() {
+  printf "Updating chromium-codecs-ffmpeg-extra\n"
+  sudo /usr/share/vivaldi-stable/update-ffmpeg
+}
+## update rustup
+function update-rustup() {
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+}
+## update helm
+function update-helm() {
+  curl -fksSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  helm plugin install https://github.com/databus23/helm-diff
+}
+## update helmfile
+function update-helmfile() {
+  sudo curl -fksSL https://github.com/roboll/helmfile/releases/latest/download/helmfile_linux_amd64 -o /usr/local/bin/helmfile
+  sudo chmod +x /usr/local/bin/helmfile
+}
+## update kubectl
+function update-kubectl() {
+  sudo curl -fksSL https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64 -o /usr/local/bin/kind
+  sudo curl -fksSL "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl
+  sudo chmod +x /usr/local/bin/kubectl
+}
+## update kind
+function update-kind() {
+  sudo curl -fksSL https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64 -o /usr/local/bin/kind
+  sudo chmod +x /usr/local/bin/kind
+}
+## update k3d
+function update-k3d() {
+  curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+}
+
+## update code-cli
+function update-code-cli() {
+  curl -fksSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64" -o /tmp/vscode_cli_alpine_x64_cli.tar.gz
+  sudo tar -C /usr/local/bin -xf /tmp/vscode_cli_alpine_x64_cli.tar.gz code
+  rm -f /tmp/vscode_cli_alpine_x64_cli.tar.gz
+  sudo chmod +x /usr/local/bin/code
+}
+
+## polite bash commands
+function please() {
+  if [ "$1" ]; then
+    sudo "$@"
+  else
+    sudo "$BASH" -c "$(history -p !!)"
+  fi
+}
+

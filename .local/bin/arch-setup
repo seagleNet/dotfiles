@@ -1,0 +1,51 @@
+#!/bin/env bash
+
+sudo -E pacman -Syu
+sudo -E pacman -S --needed \
+    ast-grep \
+    base-devel \
+    cpanminus \
+    chafa \
+    cpanminus \
+    fd \
+    fzf \
+    git \
+    github-cli \
+    glab \
+    lazygit \
+    less \
+    lua \
+    lua51 \
+    luarocks \
+    markdownlint-cli2 \
+    neovim \
+    npm \
+    nvim \
+    odin \
+    odinfmt \
+    openssh \
+    packer \
+    prettier \
+    python-black \
+    python-isort \
+    python-pynvim \
+    python-pip \
+    ripgrep \
+    ruby \
+    shfmt \
+    starship \
+    stylua \
+    terraform \
+    texlive-latex \
+    tree-sitter \
+    ueberzugpp \
+    unzip \
+    viu \
+    wget \
+    yamlfmt \
+    zip
+
+# sudo -E npm install -g neovim
+gem install neovim
+sudo /usr/bin/vendor_perl/cpanm -n Neovim::Ext
+npm install --save-dev --save-exact prettier

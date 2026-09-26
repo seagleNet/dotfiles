@@ -1,0 +1,21 @@
+[user]
+	name = seagleNet
+	email = marc.sommerau@gmail.com
+[user "https://gitlab.com"]
+	name = seagle
+	email = marc.sommerau@gmail.com
+[core]
+	editor = vim
+[color]
+	ui = auto
+[credential]
+	helper = cache --timeout=18000
+[pull]
+	rebase = true
+[includeIf "gitdir:~/Work/"]
+	path = .gitconfig-work
+[filter "lfs"]
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
