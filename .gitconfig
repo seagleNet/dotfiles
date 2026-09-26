@@ -1,9 +1,6 @@
 [user]
 	name = seagleNet
-	email = marc.sommerau@gmail.com
-[user "https://gitlab.com"]
-	name = seagle
-	email = marc.sommerau@gmail.com
+	email = noreply@seagle.sh
 [core]
 	editor = vim
 [color]
