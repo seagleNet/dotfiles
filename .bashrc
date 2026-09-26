@@ -39,11 +39,6 @@ if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
 fi
 
-# set a fancy prompt (non-color, unless we know we "want" color)
-case "$TERM" in
-xterm-color | *-256color) color_prompt=yes ;;
-esac
-
 # If this is an xterm set the title to user@host:dir
 case "$TERM" in
 xterm* | rxvt*)
@@ -76,24 +71,17 @@ alias l='ls -CF'
 #   sleep 10; alert
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
-# clear .bashrc_missing if exists
-[[ -f "${HOME}/.bashrc_missing" ]] && truncate -s 0 "${HOME}/.bashrc_missing"
-
 # env variables
 [[ -f "${HOME}/.vimrc" ]] && export MYVIMRC="${HOME}/.vimrc"
-## path variable
-[[ -d "${HOME}/.local/bin" ]] && export PATH="${HOME}/.local/bin:$PATH"
+## path variable (shared with .profile)
+[[ -f "${HOME}/.config/shell/path.sh" ]] && source "${HOME}/.config/shell/path.sh"
 [[ -d "/usr/lib64/openjdk-11/bin" ]] && export PATH="/usr/lib64/openjdk-11/bin:$PATH"
 [[ -d "/usr/lib64/openjdk-17/bin" ]] && export PATH="/usr/lib64/openjdk-17/bin:$PATH"
-## cargo env
-[[ -f "${HOME}/.cargo/env" ]] && source "$HOME/.cargo/env"
 ## pager
 export PAGER="less"
-[[ $(which bat 2>>"${HOME}/.bashrc_missing") ]] && export PAGER="bat" && export MANPAGER="sh -c 'col -bx | bat -l man -p'"
-[[ $(which batcat 2>>"${HOME}/.bashrc_missing") ]] && export PAGER="batcat" && export MANPAGER="sh -c 'col -bx | batcat -l man -p'"
+command -v bat >/dev/null && export PAGER="bat" && export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+command -v batcat >/dev/null && export PAGER="batcat" && export MANPAGER="sh -c 'col -bx | batcat -l man -p'"
 export GIT_PAGER=$PAGER
-## krew
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
 # Alias definitions.
 # You may want to put all your additions into a separate file like
@@ -117,13 +105,13 @@ if ! shopt -oq posix; then
 fi
 
 ## kubectl bash completion
-[[ $(which kubectl 2>>"${HOME}/.bashrc_missing") ]] && source <(kubectl completion bash) && complete -F __start_kubectl k
+command -v kubectl >/dev/null && source <(kubectl completion bash) && complete -F __start_kubectl k
 ## helm bash completion
-[[ $(which helm 2>>"${HOME}/.bashrc_missing") ]] && source <(helm completion bash)
+command -v helm >/dev/null && source <(helm completion bash)
 ## kind bash completion
-[[ $(which kind 2>>"${HOME}/.bashrc_missing") ]] && source <(kind completion bash)
+command -v kind >/dev/null && source <(kind completion bash)
 ## rustup bash completion
-[[ $(which rustup 2>>"${HOME}/.bashrc_missing") ]] && source <(rustup completions bash) && source <(rustup completions bash cargo)
+command -v rustup >/dev/null && source <(rustup completions bash) && source <(rustup completions bash cargo)
 
 # bash sets
 ## set vi shell commands

@@ -12,6 +12,7 @@ end
 
 # -g keeps these session-scoped instead of persisting in fish_user_paths;
 # missing directories are skipped, so this is safe to share across machines
+set -l gem_bins $HOME/.local/share/gem/ruby/*/bin
 fish_add_path -g \
     $HOME/.opencode/bin \
     $HOME/.npm/bin \
@@ -19,7 +20,7 @@ fish_add_path -g \
     $HOME/.local/bin \
     $HOME/.cargo/bin \
     $HOME/go/bin \
-    $HOME/.local/share/gem/ruby/3.4.0/bin \
+    $gem_bins \
     /opt/google-cloud-cli/bin \
     /opt/nvim-linux-x86_64/bin \
     /opt/nvim-linux-arm64/bin
