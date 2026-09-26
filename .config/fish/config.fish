@@ -21,4 +21,5 @@ fish_add_path -g \
     $HOME/go/bin \
     $HOME/.local/share/gem/ruby/3.4.0/bin \
     /opt/google-cloud-cli/bin \
-    /opt/nvim-linux-x86_64/bin
+    /opt/nvim-linux-x86_64/bin \
+    /opt/nvim-linux-arm64/bin

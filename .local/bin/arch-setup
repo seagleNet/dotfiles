@@ -1,17 +1,22 @@
-#!/bin/env bash
+#!/usr/bin/env bash
+# Install the packages these dotfiles expect on Arch (incl. WSL and Omarchy).
+# Safe to re-run: pacman --needed skips what's already installed.
+set -euo pipefail
 
-sudo -E pacman -Syu
-sudo -E pacman -S --needed \
+sudo -E pacman -Syu --needed \
     ast-grep \
     base-devel \
-    cpanminus \
+    bat \
     chafa \
     cpanminus \
+    eza \
     fd \
+    fish \
     fzf \
     git \
     github-cli \
     glab \
+    jq \
     lazygit \
     less \
     lua \
@@ -20,7 +25,6 @@ sudo -E pacman -S --needed \
     markdownlint-cli2 \
     neovim \
     npm \
-    nvim \
     odin \
     odinfmt \
     openssh \
@@ -28,8 +32,8 @@ sudo -E pacman -S --needed \
     prettier \
     python-black \
     python-isort \
-    python-pynvim \
     python-pip \
+    python-pynvim \
     ripgrep \
     ruby \
     shfmt \
@@ -37,7 +41,7 @@ sudo -E pacman -S --needed \
     stylua \
     terraform \
     texlive-latex \
-    tree-sitter \
+    tree-sitter-cli \
     ueberzugpp \
     unzip \
     viu \
@@ -45,7 +49,6 @@ sudo -E pacman -S --needed \
     yamlfmt \
     zip
 
-# sudo -E npm install -g neovim
-gem install neovim
+# neovim language providers (python comes from python-pynvim)
+gem install --user-install neovim
 sudo /usr/bin/vendor_perl/cpanm -n Neovim::Ext
-npm install --save-dev --save-exact prettier

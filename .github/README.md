@@ -18,6 +18,17 @@ This clones into `~/.dotfiles`, moves conflicting files to `~/.dotfiles-backup/<
 checks out, then runs `dot setup` (fisher plugins, Omarchy shell plugins).
 Pushes go over SSH (`git@github.com:seagleNet/dotfiles.git`).
 
+Prerequisites: `git curl jq fish` (install fish first so fisher plugins get set up).
+
+Then install the tools the configs expect:
+
+```bash
+arch-setup      # Arch, WSL, Omarchy (pacman)
+debian-setup    # Debian trixie+ (apt, plus upstream nvim in /opt, npm and go for the rest)
+```
+
+Then `bw login && dot secrets pull`, and copy or create an SSH key for pushing.
+
 ## Daily use
 
 ```bash

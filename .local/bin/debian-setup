@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Install the packages these dotfiles expect on Debian (trixie or newer).
+# Safe to re-run. Tools Debian doesn't package (or ships too old) come from
+# upstream releases, npm (prefix ~/.npm via .npmrc) and go install.
+# Not covered here: odin, packer, terraform.
+set -euo pipefail
+
+sudo -E apt-get update
+sudo -E apt-get install -y \
+    bat \
+    black \
+    build-essential \
+    chafa \
+    cpanminus \
+    curl \
+    eza \
+    fd-find \
+    fish \
+    fzf \
+    gh \
+    git \
+    glab \
+    golang-go \
+    jq \
+    lazygit \
+    less \
+    lua5.1 \
+    lua5.4 \
+    luarocks \
+    npm \
+    openssh-client \
+    python3-isort \
+    python3-pip \
+    python3-pynvim \
+    ripgrep \
+    ruby \
+    ruby-dev \
+    shfmt \
+    starship \
+    texlive-latex-base \
+    tree-sitter-cli \
+    ueberzug \
+    unzip \
+    wget \
+    zip
+
+# neovim: Debian's package is too old for LazyVim, use the upstream release
+# (config.fish puts /opt/nvim-linux-*/bin on PATH)
+case $(uname -m) in
+    x86_64) nvim_arch=x86_64 ;;
+    aarch64) nvim_arch=arm64 ;;
+    *) echo "no neovim release for $(uname -m)" >&2; exit 1 ;;
+esac
+sudo rm -rf "/opt/nvim-linux-$nvim_arch"
+curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$nvim_arch.tar.gz" |
+    sudo tar -xz -C /opt
+
+# formatters/linters not packaged in Debian
+# markdownlint-cli2 0.23+ needs node 22; trixie ships node 20
+markdownlint=markdownlint-cli2
+(($(node -p 'process.versions.node.split(".")[0]') < 22)) && markdownlint=markdownlint-cli2@0.22
+npm install -g prettier "$markdownlint" @ast-grep/cli @johnnymorganz/stylua-bin neovim
+go install github.com/google/yamlfmt/cmd/yamlfmt@latest
+
+# neovim language providers (python comes from python3-pynvim)
+gem install --user-install neovim
+sudo cpanm -n Neovim::Ext
