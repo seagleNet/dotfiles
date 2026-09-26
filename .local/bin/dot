@@ -111,15 +111,20 @@ select_secrets() {
   done
 }
 
-# Prints the item id for an exact name match, or nothing.
-bw_item_id() {
-  bw list items --search "dotfiles/$1" | jq -r --arg n "dotfiles/$1" '.[] | select(.name == $n) | .id' | head -n1
+# Every bw call starts a node process (~1s), so fetch all dotfiles notes once.
+load_items() {
+  ITEMS=$(bw list items --search dotfiles/)
+}
+
+# Prints the stored item JSON for an exact name match, or nothing.
+item_json() {
+  jq -c --arg n "dotfiles/$1" 'first(.[] | select(.name == $n)) // empty' <<<"$ITEMS"
 }
 
 cmd_secrets() {
   local action="${1:-status}"
   shift || true
-  local entry name path id tmp
+  local entry name path item tmp
   local entries
   mapfile -t entries < <(select_secrets "$@")
 
@@ -132,16 +137,17 @@ cmd_secrets() {
       ;;
     pull)
       bw_session
+      load_items
       for entry in "${entries[@]}"; do
         name=${entry%%|*} path="$HOME/${entry#*|}"
-        id=$(bw_item_id "$name")
-        if [[ -z $id ]]; then
+        item=$(item_json "$name")
+        if [[ -z $item ]]; then
           warn "skipping $name: no 'dotfiles/$name' note in bitwarden"
           continue
         fi
         mkdir -p "$(dirname "$path")"
         tmp=$(mktemp)
-        bw get item "$id" | jq -r '.notes // ""' >"$tmp"
+        jq -j '.notes // ""' <<<"$item" >"$tmp"
         chmod 600 "$tmp"
         mv "$tmp" "$path"
         info "pulled $name -> ~/${entry#*|}"
@@ -149,19 +155,23 @@ cmd_secrets() {
       ;;
     push)
       bw_session
+      load_items
       for entry in "${entries[@]}"; do
         name=${entry%%|*} path="$HOME/${entry#*|}"
         [[ -f $path ]] || { (($# > 0)) && warn "skipping $name: ~/${entry#*|} missing"; continue; }
-        id=$(bw_item_id "$name")
-        if [[ -n $id ]]; then
-          bw get item "$id" | jq --rawfile n "$path" '.notes = $n' | bw encode | bw edit item "$id" >/dev/null
-          info "updated dotfiles/$name"
-        else
-          bw get template item |
-            jq --arg name "dotfiles/$name" --rawfile n "$path" \
-              '.type = 2 | .secureNote = {type: 0} | .name = $name | .notes = $n | .login = null' |
-            bw encode | bw create item >/dev/null
+        item=$(item_json "$name")
+        if [[ -z $item ]]; then
+          jq -n --arg name "dotfiles/$name" --rawfile n "$path" \
+            '{type: 2, name: $name, notes: $n, secureNote: {type: 0}, organizationId: null,
+              folderId: null, favorite: false, fields: [], reprompt: 0}' |
+            base64 -w0 | bw create item >/dev/null
           info "created dotfiles/$name"
+        elif jq -e --rawfile n "$path" '.notes == $n' <<<"$item" >/dev/null; then
+          info "unchanged dotfiles/$name"
+        else
+          jq --rawfile n "$path" '.notes = $n' <<<"$item" | base64 -w0 |
+            bw edit item "$(jq -r .id <<<"$item")" >/dev/null
+          info "updated dotfiles/$name"
         fi
       done
       ;;
