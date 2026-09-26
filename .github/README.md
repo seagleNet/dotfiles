@@ -102,6 +102,11 @@ dot secrets push # files -> Bitwarden after editing locally
 
 # register a new secret: appends to the list, excludes it from git, pushes it
 dot secrets add ssh-key ~/.ssh/id_ed25519
+# how each secret is stored in Bitwarden, plus unconfigured dotfiles/* items
+dot secrets list
+# unregister: moves the item to the Bitwarden trash (restorable for 30 days),
+# keeps the local file; --keep-vault leaves Bitwarden alone
+dot secrets rm ssh-key
 ```
 
 After `dot secrets add`, commit `~/.config/dotfiles/secrets`; other machines then

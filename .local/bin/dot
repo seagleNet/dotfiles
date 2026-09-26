@@ -9,6 +9,9 @@
 #                         sync private files with Bitwarden secure notes
 #   dot secrets add <name> <file>
 #                         register a file as a secret and push it to Bitwarden
+#   dot secrets list      show how each secret is stored in Bitwarden
+#   dot secrets rm [--keep-vault] <name>
+#                         unregister a secret, moving its item to the Bitwarden trash
 set -euo pipefail
 
 DOT_DIR="${DOT_DIR:-$HOME/.dotfiles}"
@@ -376,13 +379,83 @@ secrets_add() {
     info "commit ~/${SECRETS_FILE#"$HOME"/} so other machines can 'dot secrets pull $name'"
 }
 
+# dot secrets list: configured secrets with their local and vault state, plus
+# dotfiles/* items in the vault that are no longer configured.
+secrets_list() {
+    (($# == 0)) || die "usage: dot secrets list"
+    bw_session
+    load_items
+    local entry name item stored local_state
+    printf '%-16s %-34s %-8s %s\n' NAME FILE LOCAL BITWARDEN
+    for entry in "${SECRETS[@]}"; do
+        name=${entry%%|*}
+        item=$(item_json "$name")
+        local_state=missing
+        [[ ! -f $HOME/${entry#*|} ]] || local_state=present
+        if [[ -z $item ]]; then
+            stored="not stored"
+        elif [[ $(jq -r '.notes // ""' <<<"$item") =~ $MARKER_RE ]]; then
+            stored="attachment, $(jq -r --arg id "${BASH_REMATCH[2]}" \
+                'first(.attachments[]? | select(.id == $id) | .sizeName // "\(.size) bytes") // "missing!"' <<<"$item")"
+        else
+            stored="note, $(jq -j '.notes // ""' <<<"$item" | wc -c) bytes"
+        fi
+        printf '%-16s ~/%-32s %-8s %s\n' "$name" "${entry#*|}" "$local_state" "$stored"
+    done
+    jq -r --args '.[] | .name | select(startswith("dotfiles/")) | ltrimstr("dotfiles/")
+        | select(IN($ARGS.positional[]) | not)' "${SECRETS[@]%%|*}" <<<"$ITEMS" |
+        while read -r name; do
+            printf '%-16s %-34s %-8s %s\n' "$name" "-" "-" "in bitwarden only, not configured"
+        done
+}
+
+# dot secrets rm [--keep-vault] <name>: drop a secret from the list and the git
+# excludes and move its item to the Bitwarden trash (restorable for 30 days).
+# The local file stays.
+secrets_rm() {
+    local keep_vault=false name entry rel="" item tmp
+    if [[ ${1-} == --keep-vault ]]; then
+        keep_vault=true
+        shift
+    fi
+    (($# == 1)) || die "usage: dot secrets rm [--keep-vault] <name>"
+    name=$1
+    for entry in "${SECRETS[@]}"; do
+        [[ ${entry%%|*} != "$name" ]] || rel=${entry#*|}
+    done
+    [[ -n $rel ]] || die "unknown secret '$name' (known: $(printf '%s ' "${SECRETS[@]%%|*}"))"
+
+    if ! $keep_vault; then
+        bw_session
+        load_items
+        item=$(item_json "$name")
+        if [[ -n $item ]]; then
+            item=$(api DELETE "/object/item/$(jq -r .id <<<"$item")")
+            info "moved dotfiles/$name to the bitwarden trash"
+        else
+            warn "no 'dotfiles/$name' item in bitwarden"
+        fi
+    fi
+
+    tmp=$(mktemp)
+    awk -v n="$name" '$1 != n' "$SECRETS_FILE" >"$tmp"
+    cat "$tmp" >"$SECRETS_FILE"
+    rm -f "$tmp"
+    load_secrets
+    write_excludes
+    info "removed $name from ~/${SECRETS_FILE#"$HOME"/}"
+    warn "file ~/$rel is no longer excluded from git, delete it or keep it out of 'dot add'"
+}
+
 cmd_secrets() {
     local action="${1:-status}"
     shift || true
-    if [[ $action == add ]]; then
-        secrets_add "$@"
+    case $action in
+    add | list | rm)
+        "secrets_$action" "$@"
         return
-    fi
+        ;;
+    esac
     local entry name path
     local entries
     mapfile -t entries < <(select_secrets "$@")
@@ -413,7 +486,7 @@ cmd_secrets() {
             push_secret "$name" "$path"
         done
         ;;
-    *) die "usage: dot secrets pull|push|status [name...] | add <name> <file>" ;;
+    *) die "usage: dot secrets pull|push|status [name...] | add <name> <file> | list | rm [--keep-vault] <name>" ;;
     esac
 }
 

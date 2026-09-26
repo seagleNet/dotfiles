@@ -20,9 +20,11 @@ complete -c dot -n __fish_use_subcommand -a bootstrap -d 'Clone dotfiles onto a 
 complete -c dot -n __fish_use_subcommand -a setup -d 'Install fisher and omarchy plugins'
 complete -c dot -n __fish_use_subcommand -a secrets -d 'Sync private files with Bitwarden'
 
-complete -c dot -n '__fish_seen_subcommand_from secrets; and not __fish_seen_subcommand_from add pull push status' \
-    -a 'add pull push status'
-complete -c dot -n '__fish_seen_subcommand_from secrets; and __fish_seen_subcommand_from pull push status' \
+complete -c dot -n '__fish_seen_subcommand_from secrets; and not __fish_seen_subcommand_from add list pull push rm status' \
+    -a 'add list pull push rm status'
+complete -c dot -n '__fish_seen_subcommand_from secrets; and __fish_seen_subcommand_from pull push rm' \
     -a '(__dot_secret_names)'
+complete -c dot -n '__fish_seen_subcommand_from secrets; and __fish_seen_subcommand_from rm' \
+    -l keep-vault -d 'Keep the Bitwarden item'
 # dot secrets add <name> <file>: complete the file once a name is given
 complete -c dot -n '__fish_seen_subcommand_from secrets; and __fish_seen_subcommand_from add; and test (count (commandline -xpc)) -ge 4' -F
