@@ -118,19 +118,94 @@ cmd_setup() {
     fi
 }
 
+# All vault access goes through one `bw serve` process per dot run: every bw
+# invocation costs ~1-5s (node startup, reading and decrypting the vault),
+# requests to a running server ~20ms. It listens on a unix socket in a private
+# 0700 directory, so only this user can reach it; if this bw can't do that
+# (undocumented `unix://` hostname), it falls back to 127.0.0.1 on a random port.
+bw_start() {
+    BW_DIR=$(mktemp -d -p "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}" dot-bw.XXXXXX)
+    trap bw_stop EXIT
+    trap 'exit 130' INT TERM
+
+    bw serve --hostname "unix://$BW_DIR/bw.sock" >"$BW_DIR/log" 2>&1 &
+    BW_PID=$!
+    # bw serve rejects Host headers it doesn't expect, even on a socket
+    BW_CURL=(--unix-socket "$BW_DIR/bw.sock" -H "Host: localhost:8087")
+    BW_BASE=http://localhost
+    bw_wait && return
+
+    warn "bw serve can't listen on a unix socket, falling back to 127.0.0.1"
+    bw_kill
+    local port=$((20000 + RANDOM % 20000))
+    bw serve --hostname 127.0.0.1 --port "$port" >"$BW_DIR/log" 2>&1 &
+    BW_PID=$!
+    BW_CURL=()
+    BW_BASE=http://127.0.0.1:$port
+    bw_wait || die "bw serve didn't start: $(tail -n3 "$BW_DIR/log")"
+}
+
+# Wait up to ~15s for the server; fails early if it exited.
+bw_wait() {
+    local i
+    for ((i = 0; i < 300; i++)); do
+        bw_alive || return 1
+        curl -fs "${BW_CURL[@]}" "$BW_BASE/status" >/dev/null 2>&1 && return 0
+        sleep 0.05
+    done
+    return 1
+}
+
+# kill -0 also succeeds for an exited but not yet reaped (zombie) process
+bw_alive() {
+    local state
+    [[ -r /proc/$BW_PID/stat ]] && read -r _ _ state _ <"/proc/$BW_PID/stat" && [[ $state != Z ]]
+}
+
+bw_kill() {
+    kill "$BW_PID" 2>/dev/null || true
+    wait "$BW_PID" 2>/dev/null || true
+}
+
+bw_stop() {
+    [[ -z ${BW_PID-} ]] || bw_kill
+    [[ -z ${BW_DIR-} ]] || rm -rf "$BW_DIR"
+}
+
+# api <method> <path> [curl args...]: prints the response's .data, dies with
+# bitwarden's message on failure. Use as `x=$(api ...)` so set -e catches it.
+api() {
+    local method=$1 path=$2 out
+    shift 2
+    out=$(curl -sS "${BW_CURL[@]}" -X "$method" "$@" "$BW_BASE$path") ||
+        die "request to bw serve failed: $method $path"
+    jq -e '.success' >/dev/null 2>&1 <<<"$out" ||
+        die "bitwarden: $(jq -r '.message // empty' <<<"$out" 2>/dev/null || echo "$out")"
+    jq -c '.data' <<<"$out"
+}
+
+# api_json <method> <path>: like api, with a JSON request body on stdin.
+api_json() { api "$1" "$2" -H 'Content-Type: application/json' --data-binary @-; }
+
 bw_session() {
-    command -v bw >/dev/null || die "bitwarden cli (bw) is not installed"
-    command -v jq >/dev/null || die "jq is required"
-    local status
-    status=$(bw status | jq -r .status)
-    case $status in
+    local cmd status
+    for cmd in bw jq curl; do
+        command -v "$cmd" >/dev/null || die "$cmd is required for dot secrets"
+    done
+    bw_start
+    status=$(api GET /status)
+    case $(jq -r .template.status <<<"$status") in
     unauthenticated) die "run 'bw login' first" ;;
     locked)
-        BW_SESSION=$(bw unlock --raw) || die "unlock failed"
-        export BW_SESSION
+        local pw
+        { : </dev/tty; } 2>/dev/null || die "vault is locked and there's no terminal, set BW_SESSION"
+        read -rsp "? Master password: " pw </dev/tty
+        echo >&2
+        # via the environment, so the password never shows up in argv
+        status=$(PW=$pw jq -n '{password: env.PW}' | api_json POST /unlock)
         ;;
     esac
-    bw sync >/dev/null
+    status=$(api POST /sync)
 }
 
 # Resolve requested names (default: all) to "name|path" entries.
@@ -151,9 +226,9 @@ select_secrets() {
     done
 }
 
-# Every bw call starts a node process (~1s), so fetch all dotfiles notes once.
+# Fetch all dotfiles notes once, the rest works on this list.
 load_items() {
-    ITEMS=$(bw list items --search dotfiles/)
+    ITEMS=$(api GET "/list/object/items?search=dotfiles%2F" | jq -c '.data')
 }
 
 # Prints the stored item JSON for an exact name match, or nothing.
@@ -183,21 +258,23 @@ create_item() {
     jq -n --arg name "dotfiles/$name" "$@" \
         '{type: 2, name: $name, notes: $n, secureNote: {type: 0}, organizationId: null,
           folderId: null, favorite: false, fields: [], reprompt: 0}' |
-        base64 -w0 | bw create item
+        api_json POST /object/item
 }
 
 # set_notes <item json> <jq args defining $n>: replace the notes, prints the item.
 set_notes() {
     local item=$1
     shift
-    jq "$@" '.notes = $n' <<<"$item" | base64 -w0 | bw edit item "$(jq -r .id <<<"$item")"
+    jq "$@" '.notes = $n' <<<"$item" | api_json PUT "/object/item/$(jq -r .id <<<"$item")"
 }
 
 # delete_attachments <item id> <attachment id...>
 delete_attachments() {
     local item_id=$1 att
     shift
-    for att in "$@"; do bw delete attachment "$att" --itemid "$item_id" >/dev/null; done
+    for att in "$@"; do
+        att=$(api DELETE "/object/attachment/$att?itemid=$item_id")
+    done
 }
 
 push_secret() {
@@ -232,7 +309,7 @@ push_secret() {
 
     # Upload first, then point the marker at it, then remove old attachments,
     # so an interrupted push leaves the previous version intact.
-    item=$(bw create attachment --file "$path" --itemid "$(jq -r .id <<<"$item")")
+    item=$(api POST "/attachment?itemid=$(jq -r .id <<<"$item")" -F "file=@$path")
     new_id=$(jq -r --args '[.attachments[] | select([.id] | inside($ARGS.positional) | not)][0].id // empty' \
         "${old[@]}" <<<"$item")
     [[ -n $new_id ]] || die "uploading $name failed"
@@ -253,7 +330,9 @@ pull_secret() {
     tmp=$(mktemp)
     if [[ $(jq -r '.notes // ""' <<<"$item") =~ $MARKER_RE ]]; then
         hash=${BASH_REMATCH[1]}
-        bw get attachment "${BASH_REMATCH[2]}" --itemid "$(jq -r .id <<<"$item")" --output "$tmp" >/dev/null
+        curl -fsS "${BW_CURL[@]}" -o "$tmp" \
+            "$BW_BASE/object/attachment/${BASH_REMATCH[2]}?itemid=$(jq -r .id <<<"$item")" ||
+            die "downloading the attachment of $name failed"
         if [[ $(sha256 "$tmp") != "$hash" ]]; then
             rm -f "$tmp"
             die "checksum mismatch for $name, ~/${path#"$HOME"/} left unchanged"

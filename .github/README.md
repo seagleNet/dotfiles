@@ -108,6 +108,11 @@ After `dot secrets add`, commit `~/.config/dotfiles/secrets`; other machines the
 `dot pull` and `dot secrets pull <name>`. When editing the list by hand, run
 `dot setup` to update the git excludes.
 
+For speed, each `dot secrets` run starts one `bw serve` on a unix socket in a
+private directory (only your user can connect; falls back to `127.0.0.1` if
+the installed `bw` can't do that) and talks to it with `curl`, instead of
+starting `bw` for every step. It's stopped when `dot` exits.
+
 Each `dot secrets` run asks for the master password. To unlock once per shell:
 
 ```bash
