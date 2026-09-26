@@ -47,9 +47,12 @@ sudo -E apt-get install -y \
 # neovim: Debian's package is too old for LazyVim, use the upstream release
 # (config.fish puts /opt/nvim-linux-*/bin on PATH)
 case $(uname -m) in
-    x86_64) nvim_arch=x86_64 ;;
-    aarch64) nvim_arch=arm64 ;;
-    *) echo "no neovim release for $(uname -m)" >&2; exit 1 ;;
+x86_64) nvim_arch=x86_64 ;;
+aarch64) nvim_arch=arm64 ;;
+*)
+    echo "no neovim release for $(uname -m)" >&2
+    exit 1
+    ;;
 esac
 sudo rm -rf "/opt/nvim-linux-$nvim_arch"
 curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$nvim_arch.tar.gz" |

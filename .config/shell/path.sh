@@ -15,8 +15,8 @@ for dir in \
     "$HOME/.opencode/bin" \
     "$HOME/bin"; do
     case ":$PATH:" in
-        *":$dir:"*) ;;
-        *) [ -d "$dir" ] && PATH="$dir:$PATH" ;;
+    *":$dir:"*) ;;
+    *) [ -d "$dir" ] && PATH="$dir:$PATH" ;;
     esac
 done
 unset dir

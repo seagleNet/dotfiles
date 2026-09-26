@@ -12,11 +12,11 @@ alias gc='gcloud'
 has fdfind && alias fd='fdfind'
 ## vscode
 if has code-oss; then
-  alias code='code-oss'
-  alias vscode='code-oss'
+    alias code='code-oss'
+    alias vscode='code-oss'
 fi
 if [[ -e /opt/visual-studio-code/code ]]; then
-  alias code='/opt/visual-studio-code/code'
+    alias code='/opt/visual-studio-code/code'
 fi
 ## ansible-playbook
 alias ap='ansible-playbook'
@@ -24,7 +24,7 @@ alias ap='ansible-playbook'
 has eza && alias ls='eza'
 ## kubectl, via kubecolor when available
 if has kubecolor; then
-  alias kubectl='kubecolor'
+    alias kubectl='kubecolor'
 fi
 alias k='kubectl'
 ## kubectx
@@ -36,74 +36,74 @@ alias kns='kubens'
 alias conlist='conjur list -k variable'
 alias conget='conjur variable get -i'
 function conset() {
-  conjur variable set -i "$1" -v "$2"
+    conjur variable set -i "$1" -v "$2"
 }
 unset -f has
 
 ## update starship
 function update-starship() {
-  curl -fsSL https://starship.rs/install.sh | sh
+    curl -fsSL https://starship.rs/install.sh | sh
 }
 ## update vivaldi widevinecdm & ffmpeg
 function update-vivaldi() {
-  local dir
-  for dir in /usr/share/vivaldi-stable /opt/vivaldi; do
-    if [[ -d $dir ]]; then
-      printf "Updating chromium-codecs-ffmpeg-extra\n"
-      sudo "$dir/update-ffmpeg"
-      return
-    fi
-  done
-  printf "Vivaldi is not installed\n"
-  return 1
+    local dir
+    for dir in /usr/share/vivaldi-stable /opt/vivaldi; do
+        if [[ -d $dir ]]; then
+            printf "Updating chromium-codecs-ffmpeg-extra\n"
+            sudo "$dir/update-ffmpeg"
+            return
+        fi
+    done
+    printf "Vivaldi is not installed\n"
+    return 1
 }
 ## update rustup
 function update-rustup() {
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 }
 ## update helm
 function update-helm() {
-  curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash &&
-    helm plugin install https://github.com/databus23/helm-diff
+    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash &&
+        helm plugin install https://github.com/databus23/helm-diff
 }
 ## update helmfile
 function update-helmfile() {
-  local version
-  version=$(curl -fsSL https://api.github.com/repos/helmfile/helmfile/releases/latest | jq -r .tag_name) || return
-  curl -fsSL "https://github.com/helmfile/helmfile/releases/download/$version/helmfile_${version#v}_linux_amd64.tar.gz" |
-    sudo tar -xz -C /usr/local/bin helmfile
+    local version
+    version=$(curl -fsSL https://api.github.com/repos/helmfile/helmfile/releases/latest | jq -r .tag_name) || return
+    curl -fsSL "https://github.com/helmfile/helmfile/releases/download/$version/helmfile_${version#v}_linux_amd64.tar.gz" |
+        sudo tar -xz -C /usr/local/bin helmfile
 }
 ## update kubectl
 function update-kubectl() {
-  local version
-  version=$(curl -fsSL https://dl.k8s.io/release/stable.txt) || return
-  sudo curl -fsSL "https://dl.k8s.io/release/$version/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl &&
-    sudo chmod +x /usr/local/bin/kubectl
+    local version
+    version=$(curl -fsSL https://dl.k8s.io/release/stable.txt) || return
+    sudo curl -fsSL "https://dl.k8s.io/release/$version/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl &&
+        sudo chmod +x /usr/local/bin/kubectl
 }
 ## update kind
 function update-kind() {
-  sudo curl -fsSL https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64 -o /usr/local/bin/kind &&
-    sudo chmod +x /usr/local/bin/kind
+    sudo curl -fsSL https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64 -o /usr/local/bin/kind &&
+        sudo chmod +x /usr/local/bin/kind
 }
 ## update k3d
 function update-k3d() {
-  curl -fsSL https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 }
 ## update code-cli
 function update-code-cli() {
-  local tarball
-  tarball=$(mktemp --suffix=.tar.gz)
-  curl -fsSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64" -o "$tarball" &&
-    sudo tar -C /usr/local/bin -xf "$tarball" code &&
-    sudo chmod +x /usr/local/bin/code
-  rm -f "$tarball"
+    local tarball
+    tarball=$(mktemp --suffix=.tar.gz)
+    curl -fsSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64" -o "$tarball" &&
+        sudo tar -C /usr/local/bin -xf "$tarball" code &&
+        sudo chmod +x /usr/local/bin/code
+    rm -f "$tarball"
 }
 
 ## polite bash commands
 function please() {
-  if [ "$1" ]; then
-    sudo "$@"
-  else
-    sudo "$BASH" -c "$(history -p !!)"
-  fi
+    if [ "$1" ]; then
+        sudo "$@"
+    else
+        sudo "$BASH" -c "$(history -p !!)"
+    fi
 }

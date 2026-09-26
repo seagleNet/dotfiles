@@ -120,5 +120,4 @@ set -o vi
 # starship
 command -v starship >/dev/null && eval "$(starship init bash)"
 
-
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
