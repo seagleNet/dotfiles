@@ -85,23 +85,25 @@ dot setup                        # after changing fish_plugins / plugin list
 Nothing private is committed. Private parts sit in untracked files that the
 public configs include (`~/.ssh/config` has `Include config.d/*`,
 `~/.gitconfig` an `includeIf gitdir:~/Work/`, `~/.bashrc` sources
-`~/.bashrc_work`, which checks for the work host itself). Each is stored as a
-Bitwarden secure note named `dotfiles/<name>`:
+`~/.bashrc_work`, which checks for the work host itself).
 
-| name             | file                          |
-| ---------------- | ----------------------------- |
-| `ssh-private`    | `~/.ssh/config.d/private`     |
-| `ssh-work`       | `~/.ssh/config.d/work`        |
-| `gitconfig-work` | `~/.gitconfig-work`           |
-| `bashrc-work`    | `~/.bashrc_work`              |
-| `denylist`       | `~/.config/dotfiles/denylist` |
+The files are listed in [`~/.config/dotfiles/secrets`](../.config/dotfiles/secrets)
+— one `<name> <path>` per line, only names and paths, so it's safe to commit.
+Each file is stored as a Bitwarden secure note named `dotfiles/<name>`.
 
 ```bash
 bw login         # once per machine
 dot secrets status
 dot secrets pull # Bitwarden -> files (all, or name them)
 dot secrets push # files -> Bitwarden after editing locally
+
+# register a new secret: appends to the list, excludes it from git, pushes it
+dot secrets add ssh-key ~/.ssh/id_ed25519
 ```
+
+After `dot secrets add`, commit `~/.config/dotfiles/secrets`; other machines then
+`dot pull` and `dot secrets pull <name>`. When editing the list by hand, run
+`dot setup` to update the git excludes.
 
 Each `dot secrets` run asks for the master password. To unlock once per shell:
 

@@ -8,10 +8,17 @@ _dot() {
     case ${COMP_WORDS[1]} in
     secrets)
         if ((COMP_CWORD == 2)); then
-            mapfile -t COMPREPLY < <(compgen -W "pull push status" -- "$cur")
+            mapfile -t COMPREPLY < <(compgen -W "add pull push status" -- "$cur")
+        elif [[ ${COMP_WORDS[2]} == add ]]; then
+            # dot secrets add <name> <file>: complete the file after the name
+            ((COMP_CWORD == 4)) || return
+            compopt -o filenames
+            mapfile -t COMPREPLY < <(compgen -f -- "$cur")
+            return
         else
             mapfile -t COMPREPLY < <(compgen -W \
-                "$(sed -nE 's/^\s*"([^|"]+)\|.*/\1/p' ~/.local/bin/dot)" -- "$cur")
+                "$(sed -nE 's/^[[:space:]]*([^#[:space:]][^[:space:]]*).*/\1/p' \
+                    ~/.config/dotfiles/secrets 2>/dev/null)" -- "$cur")
         fi
         COMPREPLY=("${COMPREPLY[@]/%/ }")
         return
