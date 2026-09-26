@@ -22,7 +22,7 @@ complete -c dot -n __fish_use_subcommand -a secrets -d 'Sync private files with 
 
 complete -c dot -n '__fish_seen_subcommand_from secrets; and not __fish_seen_subcommand_from add list pull push rm status' \
     -a 'add list pull push rm status'
-complete -c dot -n '__fish_seen_subcommand_from secrets; and __fish_seen_subcommand_from pull push rm' \
+complete -c dot -n '__fish_seen_subcommand_from secrets; and __fish_seen_subcommand_from list pull push rm status' \
     -a '(__dot_secret_names)'
 complete -c dot -n '__fish_seen_subcommand_from secrets; and __fish_seen_subcommand_from rm' \
     -l keep-vault -d 'Keep the Bitwarden item'

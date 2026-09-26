@@ -15,8 +15,6 @@ _dot() {
             compopt -o filenames
             mapfile -t COMPREPLY < <(compgen -f -- "$cur")
             return
-        elif [[ ${COMP_WORDS[2]} == list ]]; then
-            return
         else
             local words
             words=$(sed -nE 's/^[[:space:]]*([^#[:space:]][^[:space:]]*).*/\1/p' \

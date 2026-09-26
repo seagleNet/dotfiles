@@ -5,11 +5,14 @@
 #   dot bootstrap [url]   clone the repo onto a fresh machine and run setup
 #   dot setup             (re)apply machine setup: pre-commit hook, fisher plugins,
 #                         omarchy plugins
-#   dot secrets pull|push|status [name...]
+#   dot secrets pull|push [name...]
 #                         sync private files with Bitwarden secure notes
+#   dot secrets list [name...]
+#                         configured secrets and whether the files exist locally
+#   dot secrets status [name...]
+#                         compare the files with Bitwarden (default action)
 #   dot secrets add <name> <file>
 #                         register a file as a secret and push it to Bitwarden
-#   dot secrets list      show how each secret is stored in Bitwarden
 #   dot secrets rm [--keep-vault] <name>
 #                         unregister a secret, moving its item to the Bitwarden trash
 set -euo pipefail
@@ -379,33 +382,55 @@ secrets_add() {
     info "commit ~/${SECRETS_FILE#"$HOME"/} so other machines can 'dot secrets pull $name'"
 }
 
-# dot secrets list: configured secrets with their local and vault state, plus
-# dotfiles/* items in the vault that are no longer configured.
-secrets_list() {
-    (($# == 0)) || die "usage: dot secrets list"
+# dot secrets status [name...]: compare each file with Bitwarden, like git
+# status. Notes are compared by content, attachments by the checksum in their
+# marker, so nothing is downloaded. There's no sync history, so a difference
+# can't tell which side changed. Without names, also shows dotfiles/* items
+# that are no longer configured.
+secrets_status() {
+    local entries entry name path item stored state hash size
+    mapfile -t entries < <(select_secrets "$@")
     bw_session
     load_items
-    local entry name item stored local_state
-    printf '%-16s %-34s %-8s %s\n' NAME FILE LOCAL BITWARDEN
-    for entry in "${SECRETS[@]}"; do
-        name=${entry%%|*}
+    printf '%-16s %-30s %-22s %s\n' NAME FILE BITWARDEN STATE
+    for entry in "${entries[@]}"; do
+        name=${entry%%|*} path="$HOME/${entry#*|}"
         item=$(item_json "$name")
-        local_state=missing
-        [[ ! -f $HOME/${entry#*|} ]] || local_state=present
         if [[ -z $item ]]; then
             stored="not stored"
+            state="missing everywhere"
+            [[ ! -f $path ]] || state="not pushed yet"
         elif [[ $(jq -r '.notes // ""' <<<"$item") =~ $MARKER_RE ]]; then
-            stored="attachment, $(jq -r --arg id "${BASH_REMATCH[2]}" \
-                'first(.attachments[]? | select(.id == $id) | .sizeName // "\(.size) bytes") // "missing!"' <<<"$item")"
+            hash=${BASH_REMATCH[1]}
+            size=$(jq -r --arg id "${BASH_REMATCH[2]}" \
+                'first(.attachments[]? | select(.id == $id) | .sizeName // "\(.size) bytes") // empty' <<<"$item")
+            stored="attachment, ${size:-missing}"
+            if [[ -z $size ]]; then
+                state="attachment missing (push)"
+            elif [[ ! -f $path ]]; then
+                state="missing locally (pull)"
+            elif [[ $(sha256 "$path") == "$hash" ]]; then
+                state="in sync"
+            else
+                state=differs
+            fi
         else
             stored="note, $(jq -j '.notes // ""' <<<"$item" | wc -c) bytes"
+            if [[ ! -f $path ]]; then
+                state="missing locally (pull)"
+            elif jq -e --rawfile n "$path" '.notes == $n' <<<"$item" >/dev/null; then
+                state="in sync"
+            else
+                state=differs
+            fi
         fi
-        printf '%-16s ~/%-32s %-8s %s\n' "$name" "${entry#*|}" "$local_state" "$stored"
+        printf '%-16s ~/%-28s %-22s %s\n' "$name" "${entry#*|}" "$stored" "$state"
     done
+    (($# == 0)) || return 0
     jq -r --args '.[] | .name | select(startswith("dotfiles/")) | ltrimstr("dotfiles/")
         | select(IN($ARGS.positional[]) | not)' "${SECRETS[@]%%|*}" <<<"$ITEMS" |
         while read -r name; do
-            printf '%-16s %-34s %-8s %s\n' "$name" "-" "-" "in bitwarden only, not configured"
+            printf '%-16s %-30s %-22s %s\n' "$name" - - "not configured"
         done
 }
 
@@ -451,7 +476,7 @@ cmd_secrets() {
     local action="${1:-status}"
     shift || true
     case $action in
-    add | list | rm)
+    add | rm | status)
         "secrets_$action" "$@"
         return
         ;;
@@ -461,10 +486,11 @@ cmd_secrets() {
     mapfile -t entries < <(select_secrets "$@")
 
     case $action in
-    status)
+    list)
+        printf '%-16s %-30s %s\n' NAME FILE LOCAL
         for entry in "${entries[@]}"; do
             path="$HOME/${entry#*|}"
-            printf '%-16s %-28s %s\n' "${entry%%|*}" "$HOME/${entry#*|}" "$([[ -f $path ]] && echo present || echo missing)"
+            printf '%-16s ~/%-28s %s\n' "${entry%%|*}" "${entry#*|}" "$([[ -f $path ]] && echo present || echo missing)"
         done
         ;;
     pull)
@@ -486,7 +512,7 @@ cmd_secrets() {
             push_secret "$name" "$path"
         done
         ;;
-    *) die "usage: dot secrets pull|push|status [name...] | add <name> <file> | list | rm [--keep-vault] <name>" ;;
+    *) die "usage: dot secrets list|pull|push|status [name...] | add <name> <file> | rm [--keep-vault] <name>" ;;
     esac
 }
 
