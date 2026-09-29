@@ -7,7 +7,7 @@
           "id": "omarchy.indicators"
         },
         {
-          "id": "omacom.elsewhen",
+          "id": "omarchy.elsewhen",
           "zones": "Zurich|Europe/Zurich, Delhi|Asia/Kolkata, Tokyo|Asia/Tokyo, Los Angeles|America/Los_Angeles, New York|America/New_York"
         },
         {
@@ -59,7 +59,7 @@
           "id": "omarchy.audio"
         },
         {
-          "id": "omarchy.monitor"
+          "id": "im0001gt.screens"
         },
         {
           "id": "omarchy.power"
@@ -81,8 +81,9 @@
   },
   "plugins": [
     {
+      "id": "io.github.sirjul1337.lock-explorer",
       "design": "terminal",
-      "id": "io.github.sirjul1337.lock-explorer"
+      "boot": "theme"
     }
   ],
   "version": 1
