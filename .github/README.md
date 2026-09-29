@@ -58,8 +58,7 @@ shows tracked changes.
 6. **Private config**
 
    ```bash
-   bw login
-   dot secrets pull             # all of them
+   dot secrets pull             # all of them, runs `bw login` on first use
    dot secrets pull ssh-private # or only what this machine needs
    ```
 
@@ -95,9 +94,9 @@ an attachment on that note (needs Premium), with the note holding a checksum
 so `push` skips unchanged files and `pull` verifies downloads.
 
 ```bash
-bw login           # once per machine
 dot secrets list   # configured secrets, local only (no Bitwarden access)
 dot secrets status # compare with Bitwarden: in sync, differs, missing, ...
+                   # (any Bitwarden command logs in first if this machine isn't)
 dot secrets pull   # Bitwarden -> files (all, or name them)
 dot secrets push   # files -> Bitwarden after editing locally
 

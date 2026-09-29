@@ -149,21 +149,33 @@ bw_start() {
     trap 'exit 130' INT
     trap 'exit 143' TERM
 
-    bw serve --hostname "unix://$BW_DIR/bw.sock" >"$BW_DIR/log" 2>&1 &
-    BW_PID=$!
-    # bw serve rejects Host headers it doesn't expect, even on a socket
-    BW_CURL=(--unix-socket "$BW_DIR/bw.sock" -H "Host: localhost:8087")
-    BW_BASE=http://localhost
-    bw_wait && return
+    bw_serve_socket && return
+    # bw serve refuses to start while logged out. Only checked after a failed
+    # start, so the usual run doesn't pay for an extra ~2s bw call.
+    if [[ $(bw status | jq -r .status) == unauthenticated ]]; then
+        bw_login
+        bw_serve_socket && return
+    fi
 
     warn "bw serve can't listen on a unix socket, falling back to 127.0.0.1"
-    bw_kill
     local port=$((20000 + RANDOM % 20000))
     bw serve --hostname 127.0.0.1 --port "$port" >"$BW_DIR/log" 2>&1 &
     BW_PID=$!
     BW_CURL=()
     BW_BASE=http://127.0.0.1:$port
     bw_wait || die "bw serve didn't start: $(tail -n3 "$BW_DIR/log")"
+}
+
+bw_serve_socket() {
+    rm -f "$BW_DIR/bw.sock"
+    bw serve --hostname "unix://$BW_DIR/bw.sock" >"$BW_DIR/log" 2>&1 &
+    BW_PID=$!
+    # bw serve rejects Host headers it doesn't expect, even on a socket
+    BW_CURL=(--unix-socket "$BW_DIR/bw.sock" -H "Host: localhost:8087")
+    BW_BASE=http://localhost
+    bw_wait && return
+    bw_kill
+    return 1
 }
 
 # Wait up to ~15s for the server; fails early if it exited.
@@ -208,6 +220,17 @@ api() {
 
 # api_json <method> <path>: like api, with a JSON request body on stdin.
 api_json() { api "$1" "$2" -H 'Content-Type: application/json' --data-binary @-; }
+
+# First run on a machine: interactive `bw login`. --raw prints only the session
+# key (the prompts go to stderr), exported so the bw serve started next comes up
+# already unlocked instead of asking for the master password again.
+bw_login() {
+    local session
+    { : </dev/tty; } 2>/dev/null || die "not logged in to Bitwarden and there's no terminal, run 'bw login' first"
+    info "not logged in to Bitwarden, running 'bw login'"
+    session=$(bw login --raw </dev/tty) || die "bw login failed"
+    export BW_SESSION=$session
+}
 
 bw_session() {
     local cmd
