@@ -20,6 +20,8 @@ fish_add_path -g \
     $HOME/.local/bin \
     $HOME/.cargo/bin \
     $HOME/go/bin \
+    $HOME/odin/Odin \
+    $HOME/odin/ols \
     $gem_bins \
     /opt/google-cloud-cli/bin \
     /opt/nvim-linux-x86_64/bin \
