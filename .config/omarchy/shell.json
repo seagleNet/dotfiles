@@ -83,7 +83,7 @@
     {
       "id": "io.github.sirjul1337.lock-explorer",
       "design": "terminal",
-      "boot": "theme"
+      "boot": "terminal"
     }
   ],
   "version": 1
