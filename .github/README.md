@@ -31,7 +31,7 @@ shows tracked changes.
    Clones into `~/.dotfiles` over HTTPS, moves files that would be overwritten
    to `~/.dotfiles-backup/<timestamp>/`, checks out, then runs `dot setup`
    (pre-commit hook, fisher plugins; on Omarchy also the shell plugins from
-   `~/.config/dotfiles/omarchy-plugins`). Pushes go over SSH.
+   `~/.config/dotfiles/omarchy-plugins` and the font). Pushes go over SSH.
 
 3. **Open a new shell** so `~/.local/bin` is on `PATH`. Optionally
    `chsh -s /usr/bin/fish`.
@@ -41,6 +41,8 @@ shows tracked changes.
    ```bash
    arch-setup   # Arch, WSL, Omarchy (pacman)
    debian-setup # Debian trixie+ (apt, nvim in /opt, npm and go for the rest)
+   mise install # Omarchy: claude, codex, gh, node from ~/.config/mise/config.toml
+   dot setup    # Omarchy: now that the font is installed, set it
    ```
 
 5. **Bitwarden CLI** — use the standalone build: Arch's `bitwarden-cli`
@@ -77,7 +79,7 @@ dot add ~/.config/ghostty/config # start tracking a file
 dot commit -m "..." && dot push
 dot ai-commit                    # or let Claude write the message, opened for review
 dot pull                         # on other machines
-dot setup                        # after changing fish_plugins / plugin list
+dot setup                        # after changing fish_plugins / plugin list / font
 ```
 
 `dot ai-commit` (alias `aic`) sends the staged diff and the last 30 commit

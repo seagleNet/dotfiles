@@ -42,6 +42,7 @@ sudo -E pacman -Syu --needed \
     terraform \
     texlive-latex \
     tree-sitter-cli \
+    ttf-hack-nerd \
     ueberzugpp \
     unzip \
     viu \

@@ -4,7 +4,7 @@
 #   dot <git args>        run git against the dotfiles repo (dot status, dot add, ...)
 #   dot bootstrap [url]   clone the repo onto a fresh machine and run setup
 #   dot setup             (re)apply machine setup: pre-commit hook, fisher plugins,
-#                         omarchy plugins
+#                         omarchy plugins and font
 #   dot ai-commit [git commit args...]
 #                         commit the staged changes with a message written by
 #                         Claude in the style of the log, opened for review
@@ -25,6 +25,8 @@ set -euo pipefail
 DOT_DIR="${DOT_DIR:-$HOME/.dotfiles}"
 DOT_URL="https://github.com/seagleNet/dotfiles.git"
 DOT_PUSH_URL="git@github.com:seagleNet/dotfiles.git"
+# Monospace font set by `dot setup` on Omarchy (ttf-hack-nerd, see arch-setup)
+DOT_FONT="Hack Nerd Font"
 
 # Private files never tracked in git, one "<name> <path relative to ~>" per
 # line. Each is stored in Bitwarden as a secure note named "dotfiles/<name>".
@@ -138,6 +140,17 @@ cmd_setup() {
             omarchy plugin list 2>/dev/null | grep -qF "${plugin#omarchy-}" && continue
             omarchy plugin add "$url" --yes </dev/null || warn "failed to add $url"
         done <"$list"
+    fi
+
+    # through Omarchy, which sets it for fontconfig and every terminal it themes.
+    # On a fresh machine the font only arrives with arch-setup, after bootstrap.
+    if command -v omarchy >/dev/null && [[ $(omarchy font current 2>/dev/null) != "$DOT_FONT" ]]; then
+        if [[ -z $(fc-list "$DOT_FONT" 2>/dev/null) ]]; then
+            warn "$DOT_FONT isn't installed yet, run arch-setup and then 'dot setup' again"
+        else
+            info "setting the monospace font to $DOT_FONT"
+            omarchy font set "$DOT_FONT" </dev/null || warn "failed to set font $DOT_FONT"
+        fi
     fi
 }
 

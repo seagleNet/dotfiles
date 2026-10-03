@@ -17,7 +17,7 @@ set -l dot_cmds bootstrap setup ai-commit aic secrets secret
 complete -c dot -f
 complete -c dot -n "not __fish_seen_subcommand_from $dot_cmds" -a '(__dot_git_complete)'
 complete -c dot -n __fish_use_subcommand -a bootstrap -d 'Clone dotfiles onto a fresh machine'
-complete -c dot -n __fish_use_subcommand -a setup -d 'Install fisher and omarchy plugins'
+complete -c dot -n __fish_use_subcommand -a setup -d 'Install fisher and omarchy plugins, set the font'
 complete -c dot -n __fish_use_subcommand -a ai-commit -d 'Commit staged changes with a message by Claude'
 complete -c dot -n __fish_use_subcommand -a secrets -d 'Sync private files with Bitwarden'
 
