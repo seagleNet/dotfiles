@@ -75,9 +75,17 @@ shows tracked changes.
 dot status
 dot add ~/.config/ghostty/config # start tracking a file
 dot commit -m "..." && dot push
+dot ai-commit                    # or let Claude write the message, opened for review
 dot pull                         # on other machines
 dot setup                        # after changing fish_plugins / plugin list
 ```
+
+`dot ai-commit` (alias `aic`) sends the staged diff and the last 30 commit
+messages to `claude -p` with all tools disabled, and opens the suggested
+message in your editor; save to commit, empty it to abort. Extra arguments go
+to `git commit` (`--no-edit` commits without review). The denylist check from
+the pre-commit hook runs before anything is sent. `DOT_AI_MODEL` picks the
+model (default `sonnet`).
 
 ## Private config (Bitwarden)
 

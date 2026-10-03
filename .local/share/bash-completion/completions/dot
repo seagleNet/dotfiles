@@ -25,7 +25,7 @@ _dot() {
         COMPREPLY=("${COMPREPLY[@]/%/ }")
         return
         ;;
-    bootstrap | setup)
+    bootstrap | setup | ai-commit | aic)
         ((COMP_CWORD > 1)) && return
         ;;
     esac
@@ -38,7 +38,7 @@ _dot() {
 
     if ((COMP_CWORD == 1)); then
         local extra
-        mapfile -t extra < <(compgen -W "bootstrap setup secrets" -- "$cur")
+        mapfile -t extra < <(compgen -W "bootstrap setup ai-commit secrets" -- "$cur")
         COMPREPLY+=("${extra[@]/%/ }")
     fi
 }

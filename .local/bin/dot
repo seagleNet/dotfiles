@@ -5,6 +5,9 @@
 #   dot bootstrap [url]   clone the repo onto a fresh machine and run setup
 #   dot setup             (re)apply machine setup: pre-commit hook, fisher plugins,
 #                         omarchy plugins
+#   dot ai-commit [git commit args...]
+#                         commit the staged changes with a message written by
+#                         Claude in the style of the log, opened for review
 #   dot secrets pull|push [name...]
 #                         sync private files with Bitwarden secure notes
 #   dot secrets list [name...]
@@ -16,7 +19,7 @@
 #   dot secrets rm [--keep-vault] <name>
 #                         unregister a secret, moving its item to the Bitwarden trash
 #
-# Aliases: secret = secrets, ls = list, remove = rm, st = status
+# Aliases: aic = ai-commit, secret = secrets, ls = list, remove = rm, st = status
 set -euo pipefail
 
 DOT_DIR="${DOT_DIR:-$HOME/.dotfiles}"
@@ -563,6 +566,57 @@ cmd_secrets() {
     esac
 }
 
+# dot ai-commit [git commit args...]: have Claude write the message for the
+# staged changes in the style of the recent log, then commit with it opened in
+# the editor for review (pass --no-edit to skip that).
+cmd_ai_commit() {
+    local model=${DOT_AI_MODEL:-sonnet} max=100000
+    command -v claude >/dev/null || die "claude is required for dot ai-commit"
+    ! g diff --cached --quiet || die "nothing staged, 'dot add' the changes first"
+    # the diff leaves this machine, so the denylist check runs before, not
+    # only when committing
+    if [[ -x $DOT_DIR/hooks/pre-commit ]]; then
+        GIT_DIR=$DOT_DIR GIT_WORK_TREE=$HOME "$DOT_DIR/hooks/pre-commit" ||
+            die "fix the staged lines before sending them to Claude"
+    fi
+
+    # global, so the EXIT trap still sees it after this function returns
+    AI_TMP=$(mktemp -d)
+    trap 'rm -rf "$AI_TMP"' EXIT
+    {
+        cat <<'EOF'
+Write the git commit message for the staged changes below, in the style of
+this repository's recent commits:
+
+- subject: "<area>: <summary>" where area is the part of the dotfiles that
+  changed (dot, dot secrets, omarchy, nvim, gitconfig, fish, ...), summary
+  starts lowercase, says what changed, no trailing period, at most 72 chars
+- body only when the reason isn't obvious from the subject: a blank line,
+  then plain prose wrapped at 72 chars explaining why, not listing the diff
+- no trailers, no markdown, no code fences
+
+Reply with the commit message only.
+
+Recent commits:
+EOF
+        g log -n 30 --format='%B%n---' | grep -v '^Co-Authored-By:' || true
+        printf '\nStaged changes:\n'
+        g diff --cached --stat --no-color
+        echo
+        # head closing the pipe early is expected, not a failure under pipefail
+        g diff --cached --no-color | head -c "$max" || true
+        (($(g diff --cached --no-color | wc -c) <= max)) || printf '\n[diff truncated]\n'
+    } >"$AI_TMP/prompt"
+
+    info "asking claude ($model) for a commit message"
+    claude -p --model "$model" --tools "" --no-session-persistence --strict-mcp-config \
+        <"$AI_TMP/prompt" >"$AI_TMP/msg" || die "claude failed"
+    # drop a stray code fence in case the model adds one anyway
+    sed -i '/^```/d' "$AI_TMP/msg"
+    [[ -s $AI_TMP/msg ]] || die "claude returned an empty message"
+    g commit -e -F "$AI_TMP/msg" "$@"
+}
+
 load_secrets
 
 case "${1:-}" in
@@ -571,6 +625,10 @@ bootstrap)
     cmd_bootstrap "$@"
     ;;
 setup) cmd_setup ;;
+ai-commit | aic)
+    shift
+    cmd_ai_commit "$@"
+    ;;
 secrets | secret)
     shift
     cmd_secrets "$@"
