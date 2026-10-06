@@ -57,4 +57,4 @@
 -- hl.gesture({ fingers = 3, direction = "right", action = function() hl.dispatch(hl.dsp.focus({ direction = "r" })) end })
 
 -- Swiss German layout, natural touchpad scrolling
-hl.config({ input = { kb_layout = "ch", touchpad = { natural_scroll = true } } })
+hl.config({ input = { kb_layout = "ch", touchpad = { natural_scroll = true, drag_lock = 1 } } })
