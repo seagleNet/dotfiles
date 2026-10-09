@@ -22,9 +22,3 @@ fish_add_path -g \
     $HOME/go/bin \
     $gem_bins \
     /opt/google-cloud-cli/bin
-
-# Arch's mise package activates itself through vendor_conf.d; a mise from
-# mise.run (Debian) doesn't, and its tools would be missing from PATH.
-if not functions -q mise; and type -q mise
-    mise activate fish | source
-end
