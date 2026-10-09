@@ -20,12 +20,11 @@ fish_add_path -g \
     $HOME/.local/bin \
     $HOME/.cargo/bin \
     $HOME/go/bin \
-    $HOME/odin/Odin \
-    $HOME/odin/ols \
     $gem_bins \
-    /opt/google-cloud-cli/bin \
-    /opt/nvim-linux-x86_64/bin \
-    /opt/nvim-linux-arm64/bin
+    /opt/google-cloud-cli/bin
 
-# activate mise if installed
-type -q mise; and mise activate fish | source
+# Arch's mise package activates itself through vendor_conf.d; a mise from
+# mise.run (Debian) doesn't, and its tools would be missing from PATH.
+if not functions -q mise; and type -q mise
+    mise activate fish | source
+end

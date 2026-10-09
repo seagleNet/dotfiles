@@ -3,8 +3,6 @@
 # existing entries aren't added twice, so sourcing this more than once is fine.
 # Each directory is prepended, so the last one listed ends up first in PATH.
 for dir in \
-    /opt/nvim-linux-arm64/bin \
-    /opt/nvim-linux-x86_64/bin \
     /opt/google-cloud-cli/bin \
     "$HOME"/.local/share/gem/ruby/*/bin \
     "$HOME/go/bin" \

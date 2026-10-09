@@ -11,14 +11,15 @@ shows tracked changes.
 
 ## New machine
 
-1. **Prerequisites** — install fish before bootstrapping so `dot setup` can set
-   up the fisher plugins:
+1. **Prerequisites** — git, curl and mise; `dot bootstrap` uses mise to install
+   everything else:
 
    ```bash
-   # Arch / WSL (Omarchy: usually already there)
-   sudo pacman -S --needed git curl jq fish
+   # Arch / WSL (Omarchy: already there)
+   sudo pacman -S --needed git curl mise
    # Debian
-   sudo apt install git curl jq fish unzip
+   sudo apt install git curl
+   curl -fsSL https://mise.run | sh
    ```
 
 2. **Bootstrap**
@@ -29,21 +30,26 @@ shows tracked changes.
    ```
 
    Clones into `~/.dotfiles` over HTTPS, moves files that would be overwritten
-   to `~/.dotfiles-backup/<timestamp>/`, checks out, then runs `dot setup`
-   (pre-commit hook, fisher plugins; on Omarchy also the shell plugins from
-   `~/.config/dotfiles/omarchy-plugins` and the font). Pushes go over SSH.
+   to `~/.dotfiles-backup/<timestamp>/` and checks out. Then `mise bootstrap`
+   installs the packages and tools from `~/.config/mise/conf.d/bootstrap/`, and
+   `dot setup` adds the pre-commit hook and fisher plugins (on Omarchy also the
+   shell plugins from `~/.config/dotfiles/omarchy-plugins` and the font). Pushes
+   go over SSH.
 
-3. **Open a new shell** so `~/.local/bin` is on `PATH`. Optionally
-   `chsh -s /usr/bin/fish`.
+   Packages come from pacman or apt. On Arch they're current, so tools come
+   from pacman too; on Debian, which ships many too old, `dot` selects the
+   `debian` mise module (`~/.config/mise/miserc.local.toml`, per machine) and
+   mise installs them from upstream instead. odin and ols come from mise
+   everywhere.
 
-4. **Install the tools the configs expect**
+3. **Open a new shell** so `~/.local/bin` and the mise tools are on `PATH`.
+   Optionally `chsh -s /usr/bin/fish`. Then `gh auth login`: mise uses its
+   token for GitHub downloads, unauthenticated it's limited to 60 requests an
+   hour.
 
-   ```bash
-   arch-setup   # Arch, WSL, Omarchy (pacman)
-   debian-setup # Debian trixie+ (apt, nvim in /opt, npm and go for the rest)
-   mise install # Omarchy: claude, codex, gh, node from ~/.config/mise/config.toml
-   dot setup    # Omarchy: now that the font is installed, set it
-   ```
+4. **Keeping up to date** — `omarchy update` on Omarchy (system packages,
+   `mise up`, and a post-update hook for ols nightly), `mise run update`
+   everywhere else.
 
 5. **Bitwarden CLI** — use the standalone build: Arch's `bitwarden-cli`
    package needs `nodejs-lts-*`, which conflicts with `nodejs`.

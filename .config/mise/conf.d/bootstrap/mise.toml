@@ -1,0 +1,134 @@
+# Machine setup for these dotfiles on Arch (incl. WSL and Omarchy) and
+# Debian (trixie or newer), applied by `mise bootstrap`. Replaces arch-setup
+# and debian-setup.
+#
+# System packages are listed per package manager; mise skips the entries of
+# a manager that isn't installed, so each distro only sees its own. Arch
+# packages are current, so tools come from pacman there. Debian's lag behind,
+# so the `debian` module (mise.debian.toml, selected in
+# ~/.config/mise/miserc.local.toml) installs those as mise tools instead.
+#
+# Keep everything current with `mise run update`.
+
+[settings]
+# Install releases as soon as they ship. Omarchy sets this in the environment,
+# Debian machines get it from here.
+minimum_release_age = "0"
+
+[tools]
+# Odin's monthly dev release. ols follows Odin master, so its tagged releases
+# lag a release or two behind; the nightly build is the one that matches.
+# Neither distro packages a matching pair.
+odin = "latest"
+# Rolling tag, refreshed by `mise run update` and the Omarchy post-update hook.
+ols = "nightly"
+"npm:neovim" = "latest"
+
+[bootstrap.packages]
+# Arch
+"pacman:ast-grep" = "latest"
+"pacman:base-devel" = "latest"
+"pacman:bat" = "latest"
+"pacman:chafa" = "latest"
+"pacman:clang" = "latest"
+"pacman:cpanminus" = "latest"
+"pacman:eza" = "latest"
+"pacman:fd" = "latest"
+"pacman:fish" = "latest"
+"pacman:fzf" = "latest"
+"pacman:git" = "latest"
+"pacman:github-cli" = "latest"
+"pacman:glab" = "latest"
+"pacman:jq" = "latest"
+"pacman:lazygit" = "latest"
+"pacman:less" = "latest"
+"pacman:lua" = "latest"
+"pacman:lua51" = "latest"
+"pacman:luarocks" = "latest"
+"pacman:markdownlint-cli2" = "latest"
+"pacman:neovim" = "latest"
+"pacman:npm" = "latest"
+"pacman:openssh" = "latest"
+"pacman:packer" = "latest"
+"pacman:prettier" = "latest"
+"pacman:python-black" = "latest"
+"pacman:python-isort" = "latest"
+"pacman:python-pip" = "latest"
+"pacman:python-pynvim" = "latest"
+"pacman:ripgrep" = "latest"
+"pacman:ruby" = "latest"
+"pacman:shfmt" = "latest"
+"pacman:starship" = "latest"
+"pacman:stylua" = "latest"
+"pacman:terraform" = "latest"
+"pacman:texlive-latex" = "latest"
+"pacman:tree-sitter-cli" = "latest"
+"pacman:ttf-hack-nerd" = "latest"
+"pacman:ueberzugpp" = "latest"
+"pacman:unzip" = "latest"
+"pacman:viu" = "latest"
+"pacman:wget" = "latest"
+"pacman:yamlfmt" = "latest"
+"pacman:zip" = "latest"
+# Debian: only what's fine at Debian's pace, the rest is in mise.debian.toml
+"apt:black" = "latest"
+"apt:build-essential" = "latest"
+"apt:chafa" = "latest"
+"apt:clang" = "latest"
+"apt:cpanminus" = "latest"
+"apt:curl" = "latest"
+"apt:fish" = "latest"
+"apt:git" = "latest"
+"apt:jq" = "latest"
+"apt:less" = "latest"
+"apt:lua5.1" = "latest"
+"apt:lua5.4" = "latest"
+"apt:luarocks" = "latest"
+"apt:openssh-client" = "latest"
+"apt:python3-isort" = "latest"
+"apt:python3-pip" = "latest"
+"apt:python3-pynvim" = "latest"
+"apt:ruby" = "latest"
+"apt:ruby-dev" = "latest"
+"apt:texlive-latex-base" = "latest"
+"apt:ueberzug" = "latest"
+"apt:unzip" = "latest"
+"apt:wget" = "latest"
+"apt:zip" = "latest"
+
+# neovim language providers (python comes from the pynvim package, node from
+# npm:neovim above). Runs on every bootstrap, so each step checks first.
+[tasks.bootstrap]
+run = '''
+gem list -i '^neovim$' >/dev/null || gem install --user-install neovim
+if ! perl -MNeovim::Ext -e1 2>/dev/null; then
+    cpanm=$(command -v cpanm || echo /usr/bin/vendor_perl/cpanm)
+    sudo "$cpanm" -n Neovim::Ext
+fi
+'''
+
+[tasks.update]
+description = "Upgrade system packages and mise tools"
+run = '''
+set -e
+if command -v omarchy >/dev/null; then
+    # pacman, AUR and `mise up`; ols is refreshed by its post-update hook
+    omarchy update
+    exit
+fi
+if command -v yay >/dev/null; then
+    yay -Syu
+elif command -v pacman >/dev/null; then
+    sudo pacman -Syu
+fi
+if command -v apt-get >/dev/null; then
+    sudo apt-get update
+    sudo apt-get upgrade
+    # mise itself comes from mise.run there, not from apt. self-update rejects
+    # the "0" from [settings] above, 1s means the same.
+    MISE_MINIMUM_RELEASE_AGE=1s mise self-update -y
+fi
+mise up
+# a rolling tag keeps its version name, so `mise up` never sees new builds
+mise install -f ols@nightly
+'''

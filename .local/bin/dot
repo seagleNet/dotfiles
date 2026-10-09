@@ -2,9 +2,10 @@
 # dot - manage dotfiles kept in a bare git repo with $HOME as work tree.
 #
 #   dot <git args>        run git against the dotfiles repo (dot status, dot add, ...)
-#   dot bootstrap [url]   clone the repo onto a fresh machine and run setup
-#   dot setup             (re)apply machine setup: pre-commit hook, fisher plugins,
-#                         omarchy plugins and font
+#   dot bootstrap [url]   clone the repo onto a fresh machine, install packages
+#                         and tools with `mise bootstrap`, then run setup
+#   dot setup             (re)apply machine setup: pre-commit hook, mise module
+#                         selection, fisher plugins, omarchy plugins and font
 #   dot ai-commit [git commit args...]
 #                         commit the staged changes with a message written by
 #                         Claude in the style of the log, opened for review
@@ -25,7 +26,7 @@ set -euo pipefail
 DOT_DIR="${DOT_DIR:-$HOME/.dotfiles}"
 DOT_URL="https://github.com/seagleNet/dotfiles.git"
 DOT_PUSH_URL="git@github.com:seagleNet/dotfiles.git"
-# Monospace font set by `dot setup` on Omarchy (ttf-hack-nerd, see arch-setup)
+# Monospace font set by `dot setup` on Omarchy (ttf-hack-nerd, from mise bootstrap)
 DOT_FONT="Hack Nerd Font"
 
 # Private files never tracked in git, one "<name> <path relative to ~>" per
@@ -93,8 +94,40 @@ cmd_bootstrap() {
 
     g checkout
     load_secrets
+    select_mise_modules
+    mise_bootstrap
     cmd_setup
     info "done - run 'dot secrets pull' to fetch private config from Bitwarden"
+}
+
+# Debian ships many tools too old; its module in ~/.config/mise/conf.d/bootstrap
+# installs those as mise tools. The selection is per machine, never committed.
+select_mise_modules() {
+    local rc="$HOME/.config/mise/miserc.local.toml"
+    [[ -f /etc/debian_version && ! -e $rc ]] || return 0
+    mkdir -p "$(dirname "$rc")"
+    echo 'env = ["debian"]' >"$rc"
+    info "selected the debian mise module in ~/${rc#"$HOME"/}"
+}
+
+# Packages, tools and the neovim providers from ~/.config/mise/conf.d/bootstrap.
+# Before `dot setup`, which needs fish and the font from it. mise from mise.run
+# lands in ~/.local/bin, which a fresh shell may not have on PATH yet.
+mise_bootstrap() {
+    local mise
+    mise=$(command -v mise || echo "$HOME/.local/bin/mise")
+    if [[ ! -x $mise ]]; then
+        warn "mise isn't installed, install it and run 'mise bootstrap'"
+        return
+    fi
+    # stdin from the terminal: under `curl ... | bash` it's the rest of this
+    # script, and mise asks for confirmation
+    if ! { : </dev/tty; } 2>/dev/null; then
+        warn "no terminal, run 'mise bootstrap' yourself"
+        return
+    fi
+    info "installing packages and tools with mise bootstrap"
+    "$mise" bootstrap </dev/tty || warn "mise bootstrap failed, rerun it once fixed"
 }
 
 # Refuse commits whose added lines match the private denylist (regexes, one per
@@ -120,6 +153,7 @@ EOF
 cmd_setup() {
     write_excludes
     write_hook
+    select_mise_modules
     chmod 700 "$HOME/.ssh" 2>/dev/null || true
 
     # stdin from /dev/null: fisher reads plugin names from a non-tty stdin, which
@@ -143,10 +177,10 @@ cmd_setup() {
     fi
 
     # through Omarchy, which sets it for fontconfig and every terminal it themes.
-    # On a fresh machine the font only arrives with arch-setup, after bootstrap.
+    # It comes from `mise bootstrap`, which `dot bootstrap` runs first.
     if command -v omarchy >/dev/null && [[ $(omarchy font current 2>/dev/null) != "$DOT_FONT" ]]; then
         if [[ -z $(fc-list "$DOT_FONT" 2>/dev/null) ]]; then
-            warn "$DOT_FONT isn't installed yet, run arch-setup and then 'dot setup' again"
+            warn "$DOT_FONT isn't installed yet, run 'mise bootstrap' and then 'dot setup' again"
         else
             info "setting the monospace font to $DOT_FONT"
             omarchy font set "$DOT_FONT" </dev/null || warn "failed to set font $DOT_FONT"

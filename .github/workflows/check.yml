@@ -26,7 +26,7 @@ jobs:
     - name: Lint shell scripts and dotfiles
       run: |
         sc() { docker run --rm -v "$PWD:/mnt:ro" -w /mnt koalaman/shellcheck:v0.11.0 -S warning -e SC1090,SC1091 "$@"; }
-        sc .local/bin/dot .local/bin/arch-setup .local/bin/debian-setup
+        sc .local/bin/dot .config/omarchy/hooks/post-update.d/mise-nightly.hook
         sc -s bash .local/share/bash-completion/completions/dot .aliases .bashrc
         sc -s sh .profile .config/shell/path.sh
 

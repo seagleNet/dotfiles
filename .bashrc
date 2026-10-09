@@ -77,6 +77,8 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 [[ -f "${HOME}/.config/shell/path.sh" ]] && source "${HOME}/.config/shell/path.sh"
 [[ -d "/usr/lib64/openjdk-11/bin" ]] && export PATH="/usr/lib64/openjdk-11/bin:$PATH"
 [[ -d "/usr/lib64/openjdk-17/bin" ]] && export PATH="/usr/lib64/openjdk-17/bin:$PATH"
+## mise tools (on Debian also bat, fd, nvim, ...), before anything checks for them
+command -v mise >/dev/null && eval "$(mise activate bash)"
 ## pager
 export PAGER="less"
 command -v bat >/dev/null && export PAGER="bat" && export MANPAGER="sh -c 'col -bx | bat -l man -p'"

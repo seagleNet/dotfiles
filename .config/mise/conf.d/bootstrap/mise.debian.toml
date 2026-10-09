@@ -1,0 +1,23 @@
+# Debian module: tools Debian ships too old or not at all, as upstream
+# releases. Selected per machine with `env = ["debian"]` in
+# ~/.config/mise/miserc.local.toml. Arch gets the same tools from pacman.
+
+[tools]
+ast-grep = "latest"
+bat = "latest"
+eza = "latest"
+fd = "latest"
+fzf = "latest"
+glab = "latest"
+lazygit = "latest"
+neovim = "latest"
+"npm:markdownlint-cli2" = "latest"
+"npm:prettier" = "latest"
+packer = "latest"
+ripgrep = "latest"
+shfmt = "latest"
+starship = "latest"
+stylua = "latest"
+terraform = "latest"
+tree-sitter = "latest"
+yamlfmt = "latest"
