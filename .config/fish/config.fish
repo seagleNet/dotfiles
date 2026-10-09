@@ -26,3 +26,6 @@ fish_add_path -g \
     /opt/google-cloud-cli/bin \
     /opt/nvim-linux-x86_64/bin \
     /opt/nvim-linux-arm64/bin
+
+# activate mise if installed
+type -q mise; and mise activate fish | source
