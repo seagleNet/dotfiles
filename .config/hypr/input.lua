@@ -56,5 +56,5 @@
 -- hl.gesture({ fingers = 3, direction = "left", action = function() hl.dispatch(hl.dsp.focus({ direction = "l" })) end })
 -- hl.gesture({ fingers = 3, direction = "right", action = function() hl.dispatch(hl.dsp.focus({ direction = "r" })) end })
 
--- Swiss German layout, natural touchpad scrolling
-hl.config({ input = { kb_layout = "ch", touchpad = { natural_scroll = true, drag_lock = 1 } } })
+-- Natural touchpad scrolling (keyboard layout is managed by `omarchy setup keyboard`)
+hl.config({ input = { touchpad = { natural_scroll = true, drag_lock = 1 } } })
