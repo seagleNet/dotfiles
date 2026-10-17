@@ -1,30 +1,12 @@
 {
   "bar": {
-    "centerAnchor": "omarchy.clock",
     "layout": {
       "center": [
-        {
-          "id": "omarchy.indicators"
-        },
-        {
-          "id": "omarchy.elsewhen",
-          "zones": "Zurich|Europe/Zurich, Delhi|Asia/Kolkata, Tokyo|Asia/Tokyo, Los Angeles|America/Los_Angeles, New York|America/New_York"
-        },
         {
           "format": "dddd HH:mm",
           "formatAlt": "d MMMM 'W'ww yyyy",
           "id": "omarchy.clock",
           "verticalFormat": "HH\n—\nmm"
-        },
-        {
-          "id": "omarchy.weather"
-        },
-        {
-          "id": "io.github.scrambletools.auto-timezone",
-          "automatic": true
-        },
-        {
-          "id": "omarchy.system-update"
         }
       ],
       "left": [
@@ -37,10 +19,10 @@
       ],
       "right": [
         {
-          "id": "omarchy.keyboard-layout"
+          "id": "omarchy.tray"
         },
         {
-          "id": "omarchy.tray"
+          "id": "omarchy.keyboard-layout"
         },
         {
           "barMode": "Adaptive",
@@ -64,7 +46,29 @@
         {
           "id": "omarchy.power"
         }
-      ]
+      ],
+      "centerBegin": [
+        {
+          "id": "omarchy.indicators"
+        },
+        {
+          "id": "omarchy.elsewhen",
+          "zones": "Zurich|Europe/Zurich, Delhi|Asia/Kolkata, Tokyo|Asia/Tokyo, Los Angeles|America/Los_Angeles, New York|America/New_York"
+        }
+      ],
+      "centerEnd": [
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "io.github.scrambletools.auto-timezone",
+          "automatic": true
+        },
+        {
+          "id": "omarchy.system-update"
+        }
+      ],
+      "tray": []
     },
     "position": "top",
     "transparent": false
@@ -83,7 +87,8 @@
     {
       "id": "io.github.sirjul1337.lock-explorer",
       "design": "terminal",
-      "boot": "follow"
+      "boot": "follow",
+      "openAs": "full"
     }
   ],
   "version": 1
