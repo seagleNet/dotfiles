@@ -25,8 +25,13 @@
           "id": "omarchy.keyboard-layout"
         },
         {
-          "barMode": "Adaptive",
-          "id": "harshith.system-monitor"
+          "id": "bitr0t.system-monitor",
+          "chipMode": "minimal",
+          "monitors": [
+            "cpu",
+            "memory",
+            "network"
+          ]
         },
         {
           "id": "omarchy.agents"
