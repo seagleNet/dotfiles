@@ -64,3 +64,7 @@ hl.config({
 
 -- Slide between workspaces (Omarchy disables this animation by default).
 hl.animation({ leaf = "workspaces", enabled = true, speed = 2.5, bezier = "easeOutQuint", style = "slide" })
+
+-- Wobbly windows (Hyprland 0.57+). Tune with stiffness,
+-- damping, mass, and intensity under decoration.wobble.
+hl.config({ decoration = { wobble = { enabled = true } } })
