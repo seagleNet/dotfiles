@@ -61,3 +61,6 @@ hl.config({
     gaps_out = 4,
   },
 })
+
+-- Slide between workspaces (Omarchy disables this animation by default).
+hl.animation({ leaf = "workspaces", enabled = true, speed = 2.5, bezier = "easeOutQuint", style = "slide" })
