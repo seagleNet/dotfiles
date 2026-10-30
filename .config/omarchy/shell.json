@@ -94,6 +94,9 @@
       "design": "terminal",
       "boot": "follow",
       "openAs": "full"
+    },
+    {
+      "id": "seagleNet.power-saver"
     }
   ],
   "version": 1
