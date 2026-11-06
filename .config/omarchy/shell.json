@@ -103,7 +103,8 @@
       "openAs": "full"
     },
     {
-      "id": "seaglenet.power-saver"
+      "id": "seaglenet.power-saver",
+      "dim": 60
     }
   ],
   "version": 1
