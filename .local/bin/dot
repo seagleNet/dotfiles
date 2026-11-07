@@ -639,14 +639,19 @@ this repository's recent commits:
   changed (dot, dot secrets, omarchy, nvim, gitconfig, fish, ...), summary
   starts lowercase, says what changed, no trailing period, at most 72 chars
 - body only when the reason isn't obvious from the subject: a blank line,
-  then plain prose wrapped at 72 chars explaining why, not listing the diff
+  then plain prose explaining why, not listing the diff, hard-wrapped with
+  line breaks so that no line is longer than 72 chars
 - no trailers, no markdown, no code fences
 
 Reply with the commit message only.
 
 Recent commits:
 EOF
-        g log -n 30 --format='%B%n---' | grep -v '^Co-Authored-By:' || true
+        # only commits that follow the 72 char limit, so older unwrapped
+        # bodies don't teach the model to write one long line
+        g log -n 30 --format='%B%x00' | gawk -v RS='\0' '
+            { gsub(/(^|\n)Co-Authored-By:[^\n]*/, "") }
+            NF && $0 !~ /(^|\n)[^\n]{73,}/ { printf "%s\n---\n", $0 }' || true
         printf '\nStaged changes:\n'
         g diff --cached --stat --no-color
         echo
@@ -661,6 +666,13 @@ EOF
     # drop a stray code fence in case the model adds one anyway
     sed -i '/^```/d' "$AI_TMP/msg"
     [[ -s $AI_TMP/msg ]] || die "claude returned an empty message"
+    # the model doesn't reliably wrap, so split long body lines here; -s
+    # keeps its own line breaks instead of refilling the paragraphs
+    { sed -n '1,2p' "$AI_TMP/msg" && sed '1,2d' "$AI_TMP/msg" | fmt -s -w 72 -g 72; } >"$AI_TMP/wrapped"
+    mv "$AI_TMP/wrapped" "$AI_TMP/msg"
+    local subject
+    subject=$(head -n 1 "$AI_TMP/msg")
+    ((${#subject} <= 72)) || warn "subject is ${#subject} chars, over 72"
     g commit -e -F "$AI_TMP/msg" "$@"
 }
 
