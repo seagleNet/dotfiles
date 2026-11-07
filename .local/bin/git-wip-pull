@@ -10,12 +10,12 @@ set -eu
 
 force=0
 case "${1:-}" in
--f | --force) force=1 ;;
-"") ;;
-*)
-    echo "usage: git wip-pull [-f]" >&2
-    exit 2
-    ;;
+    -f | --force) force=1 ;;
+    "") ;;
+    *)
+        echo "usage: git wip-pull [-f]" >&2
+        exit 2
+        ;;
 esac
 
 remote=${WIP_REMOTE:-origin}
