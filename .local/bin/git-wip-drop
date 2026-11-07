@@ -1,12 +1,13 @@
 #!/bin/sh
 # git wip-drop — delete the wip ref for the current branch (remote + local copy).
 # Env: WIP_REMOTE (default: origin), WIP_USER (default: git config wip.user,
-#      else local part of user.email, else $USER)
+#      else full user.email, else $USER)
 set -eu
 
 remote=${WIP_REMOTE:-origin}
-user=${WIP_USER:-$(git config wip.user || git config user.email | cut -d@ -f1)}
+user=${WIP_USER:-$(git config wip.user || git config user.email || true)}
 user=${user:-${USER:-$(id -un)}}
+user=$(printf %s "$user" | tr -c 'A-Za-z0-9._@+-' _)
 branch=$(git symbolic-ref --short -q HEAD || echo detached)
 ref="refs/wip/$user/$branch"
 
