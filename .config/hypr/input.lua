@@ -57,7 +57,7 @@
 -- hl.gesture({ fingers = 3, direction = "right", action = function() hl.dispatch(hl.dsp.focus({ direction = "r" })) end })
 
 -- Natural touchpad scrolling (keyboard layout is managed by `omarchy setup keyboard`)
-hl.config({ input = { touchpad = { natural_scroll = true, drag_lock = 1 } } })
+hl.config({ input = { accel_profile = "flat", touchpad = { natural_scroll = true, drag_lock = 1 } } })
 
 -- Finger-tracking workspace swipes in place of Omarchy's left/right jumps.
 -- Natural direction comes from gestures.workspace_swipe_invert (default true):
