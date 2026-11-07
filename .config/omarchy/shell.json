@@ -70,7 +70,11 @@
           "id": "omarchy.power"
         }
       ],
-      "tray": []
+      "tray": [
+        {
+          "id": "io.github.alexdont.battery-limiter"
+        }
+      ]
     },
     "position": "top",
     "transparent": false
