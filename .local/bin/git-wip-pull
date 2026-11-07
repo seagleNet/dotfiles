@@ -10,9 +10,12 @@ set -eu
 
 force=0
 case "${1:-}" in
-    -f|--force) force=1 ;;
-    "") ;;
-    *) echo "usage: git wip-pull [-f]" >&2; exit 2 ;;
+-f | --force) force=1 ;;
+"") ;;
+*)
+    echo "usage: git wip-pull [-f]" >&2
+    exit 2
+    ;;
 esac
 
 remote=${WIP_REMOTE:-origin}
@@ -40,7 +43,7 @@ fi
 
 git log -1 --format='%s' "$ref"
 if git cherry-pick --no-commit "$ref"; then
-    git reset -q            # leave changes unstaged
+    git reset -q # leave changes unstaged
     echo "applied $ref"
 elif [ -n "$(git diff --name-only --diff-filter=U)" ]; then
     echo "conflicts in: $(git diff --name-only --diff-filter=U | tr "\n" " ")— resolve, then: git reset" >&2
