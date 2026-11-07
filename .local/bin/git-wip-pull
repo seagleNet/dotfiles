@@ -4,7 +4,8 @@
 #   -f, --force   apply even if the worktree has local changes
 #                 (only works if they don't touch the same files)
 #
-# Env: WIP_REMOTE (default: origin), WIP_USER (default: $USER)
+# Env: WIP_REMOTE (default: origin), WIP_USER (default: git config wip.user,
+#      else local part of user.email, else $USER)
 set -eu
 
 force=0
@@ -15,7 +16,8 @@ case "${1:-}" in
 esac
 
 remote=${WIP_REMOTE:-origin}
-user=${WIP_USER:-${USER:-$(id -un)}}
+user=${WIP_USER:-$(git config wip.user || git config user.email | cut -d@ -f1)}
+user=${user:-${USER:-$(id -un)}}
 branch=$(git symbolic-ref --short -q HEAD || echo detached)
 ref="refs/wip/$user/$branch"
 
