@@ -289,15 +289,15 @@ bw_session() {
     done
     bw_start
     case $(api GET /status | jq -r .template.status) in
-    unauthenticated) die "run 'bw login' first" ;;
-    locked)
-        local pw
-        { : </dev/tty; } 2>/dev/null || die "vault is locked and there's no terminal, set BW_SESSION"
-        read -rsp "? Master password: " pw </dev/tty
-        echo >&2
-        # via the environment, so the password never shows up in argv
-        PW=$pw jq -n '{password: env.PW}' | api_json POST /unlock >/dev/null
-        ;;
+        unauthenticated) die "run 'bw login' first" ;;
+        locked)
+            local pw
+            { : </dev/tty; } 2>/dev/null || die "vault is locked and there's no terminal, set BW_SESSION"
+            read -rsp "? Master password: " pw </dev/tty
+            echo >&2
+            # via the environment, so the password never shows up in argv
+            PW=$pw jq -n '{password: env.PW}' | api_json POST /unlock >/dev/null
+            ;;
     esac
     api POST /sync >/dev/null
 }
@@ -568,48 +568,48 @@ cmd_secrets() {
     local action="${1:-status}"
     shift || true
     case $action in
-    ls) action=list ;;
-    remove) action="rm" ;;
-    st) action=status ;;
+        ls) action=list ;;
+        remove) action="rm" ;;
+        st) action=status ;;
     esac
     case $action in
-    add | rm | status)
-        "secrets_$action" "$@"
-        return
-        ;;
-    list | pull | push) ;;
-    *) die "usage: dot secrets list|pull|push|status [name...] | add <name> <file> | rm [--keep-vault] <name>" ;;
+        add | rm | status)
+            "secrets_$action" "$@"
+            return
+            ;;
+        list | pull | push) ;;
+        *) die "usage: dot secrets list|pull|push|status [name...] | add <name> <file> | rm [--keep-vault] <name>" ;;
     esac
     local entry name path
     select_secrets "$@"
 
     case $action in
-    list)
-        printf '%-16s %-30s %s\n' NAME FILE LOCAL
-        for entry in "${ENTRIES[@]}"; do
-            path="$HOME/${entry#*|}"
-            printf '%-16s ~/%-28s %s\n' "${entry%%|*}" "${entry#*|}" "$([[ -f $path ]] && echo present || echo missing)"
-        done
-        ;;
-    pull)
-        bw_session
-        load_items
-        for entry in "${ENTRIES[@]}"; do
-            pull_secret "${entry%%|*}" "$HOME/${entry#*|}"
-        done
-        ;;
-    push)
-        bw_session
-        load_items
-        for entry in "${ENTRIES[@]}"; do
-            name=${entry%%|*} path="$HOME/${entry#*|}"
-            [[ -f $path ]] || {
-                (($# > 0)) && warn "skipping $name: ~/${entry#*|} missing"
-                continue
-            }
-            push_secret "$name" "$path"
-        done
-        ;;
+        list)
+            printf '%-16s %-30s %s\n' NAME FILE LOCAL
+            for entry in "${ENTRIES[@]}"; do
+                path="$HOME/${entry#*|}"
+                printf '%-16s ~/%-28s %s\n' "${entry%%|*}" "${entry#*|}" "$([[ -f $path ]] && echo present || echo missing)"
+            done
+            ;;
+        pull)
+            bw_session
+            load_items
+            for entry in "${ENTRIES[@]}"; do
+                pull_secret "${entry%%|*}" "$HOME/${entry#*|}"
+            done
+            ;;
+        push)
+            bw_session
+            load_items
+            for entry in "${ENTRIES[@]}"; do
+                name=${entry%%|*} path="$HOME/${entry#*|}"
+                [[ -f $path ]] || {
+                    (($# > 0)) && warn "skipping $name: ~/${entry#*|} missing"
+                    continue
+                }
+                push_secret "$name" "$path"
+            done
+            ;;
     esac
 }
 
@@ -667,19 +667,19 @@ EOF
 load_secrets
 
 case "${1:-}" in
-bootstrap)
-    shift
-    cmd_bootstrap "$@"
-    ;;
-setup) cmd_setup ;;
-ai-commit | aic)
-    shift
-    cmd_ai_commit "$@"
-    ;;
-secrets | secret)
-    shift
-    cmd_secrets "$@"
-    ;;
-"") g status ;;
-*) g "$@" ;;
+    bootstrap)
+        shift
+        cmd_bootstrap "$@"
+        ;;
+    setup) cmd_setup ;;
+    ai-commit | aic)
+        shift
+        cmd_ai_commit "$@"
+        ;;
+    secrets | secret)
+        shift
+        cmd_secrets "$@"
+        ;;
+    "") g status ;;
+    *) g "$@" ;;
 esac

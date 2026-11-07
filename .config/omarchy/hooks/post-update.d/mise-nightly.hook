@@ -3,5 +3,5 @@
 # omarchy update runs `mise up`, which can't see new builds of a rolling tag
 # like ols@nightly because the version name stays the same.
 if command -v mise >/dev/null; then
-  mise install -f ols@nightly
+    mise install -f ols@nightly
 fi
