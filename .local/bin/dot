@@ -78,7 +78,13 @@ cmd_bootstrap() {
     command -v git >/dev/null || die "git is required"
 
     info "cloning $url"
-    git clone --bare "$url" "$DOT_DIR"
+    # a regular clone, unlike --bare, sets up origin/* and the upstream; the
+    # repo goes to $DOT_DIR and the throwaway dir only gets a .git pointer,
+    # so $HOME never has a .git that every directory below would pick up
+    local tmp
+    tmp=$(mktemp -d)
+    git clone --no-checkout --separate-git-dir="$DOT_DIR" "$url" "$tmp/repo"
+    rm -rf "$tmp"
     g config status.showUntrackedFiles no
     [[ $url == "$DOT_URL" ]] && g remote set-url --push origin "$DOT_PUSH_URL"
 
