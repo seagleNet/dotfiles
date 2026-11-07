@@ -1,0 +1,9 @@
+#!/bin/sh
+# git wip-list — list your wip refs on the remote.
+# Env: WIP_REMOTE (default: origin), WIP_USER (default: $USER)
+set -eu
+
+remote=${WIP_REMOTE:-origin}
+user=${WIP_USER:-${USER:-$(id -un)}}
+
+git ls-remote "$remote" "refs/wip/$user/*"

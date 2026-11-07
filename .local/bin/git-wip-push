@@ -1,0 +1,30 @@
+#!/bin/sh
+# git wip-push — snapshot the working tree (tracked + untracked, minus ignored)
+# to a private ref refs/wip/<user>/<branch> on the remote.
+# Your HEAD, index and working tree are left untouched.
+#
+# Env: WIP_REMOTE (default: origin), WIP_USER (default: $USER)
+set -eu
+
+remote=${WIP_REMOTE:-origin}
+user=${WIP_USER:-${USER:-$(id -un)}}
+branch=$(git symbolic-ref --short -q HEAD || echo detached)
+ref="refs/wip/$user/$branch"
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Build a tree from the worktree using a throwaway index
+idx=$(mktemp -u "${TMPDIR:-/tmp}/wip-index.XXXXXX")
+trap 'rm -f "$idx"' EXIT INT TERM
+GIT_INDEX_FILE=$idx git read-tree HEAD
+GIT_INDEX_FILE=$idx git add -A
+tree=$(GIT_INDEX_FILE=$idx git write-tree)
+
+if [ "$tree" = "$(git rev-parse 'HEAD^{tree}')" ]; then
+    echo "nothing to push (worktree matches HEAD)"
+    exit 0
+fi
+
+commit=$(git commit-tree "$tree" -p HEAD -m "wip from $(hostname) at $(date '+%F %T')")
+git push -f -q "$remote" "$commit:$ref"
+echo "pushed $ref -> $remote ($(git rev-parse --short "$commit"))"

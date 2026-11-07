@@ -1,0 +1,49 @@
+#!/bin/sh
+# git wip-pull [-f] — fetch refs/wip/<user>/<branch> and apply it to the
+# working tree as unstaged changes. HEAD is not moved.
+#   -f, --force   apply even if the worktree has local changes
+#                 (only works if they don't touch the same files)
+#
+# Env: WIP_REMOTE (default: origin), WIP_USER (default: $USER)
+set -eu
+
+force=0
+case "${1:-}" in
+    -f|--force) force=1 ;;
+    "") ;;
+    *) echo "usage: git wip-pull [-f]" >&2; exit 2 ;;
+esac
+
+remote=${WIP_REMOTE:-origin}
+user=${WIP_USER:-${USER:-$(id -un)}}
+branch=$(git symbolic-ref --short -q HEAD || echo detached)
+ref="refs/wip/$user/$branch"
+
+cd "$(git rev-parse --show-toplevel)"
+
+if ! git fetch -q "$remote" "+$ref:$ref" 2>/dev/null; then
+    echo "no $ref on $remote" >&2
+    exit 1
+fi
+
+if [ "$force" -eq 0 ] && [ -n "$(git status --porcelain)" ]; then
+    echo "worktree is dirty; commit/stash first or use -f" >&2
+    exit 1
+fi
+
+base=$(git rev-parse "$ref^")
+if [ "$base" != "$(git rev-parse HEAD)" ]; then
+    echo "note: wip is based on $(git rev-parse --short "$base"), you're on $(git rev-parse --short HEAD) — applying as 3-way merge"
+fi
+
+git log -1 --format='%s' "$ref"
+if git cherry-pick --no-commit "$ref"; then
+    git reset -q            # leave changes unstaged
+    echo "applied $ref"
+elif [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+    echo "conflicts in: $(git diff --name-only --diff-filter=U | tr "\n" " ")— resolve, then: git reset" >&2
+    exit 1
+else
+    echo "nothing applied — local changes overlap with the wip (see above)" >&2
+    exit 1
+fi
