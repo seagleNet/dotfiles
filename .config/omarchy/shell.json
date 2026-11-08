@@ -23,6 +23,9 @@
           "id": "omarchy.weather"
         },
         {
+          "id": "omarchy.media"
+        },
+        {
           "automatic": true,
           "id": "io.github.scrambletools.auto-timezone"
         },
