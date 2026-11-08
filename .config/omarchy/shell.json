@@ -9,6 +9,27 @@
           "verticalFormat": "HH\n—\nmm"
         }
       ],
+      "centerBegin": [
+        {
+          "id": "omarchy.indicators"
+        },
+        {
+          "id": "omarchy.elsewhen",
+          "zones": "Zurich|Europe/Zurich, Delhi|Asia/Kolkata, Tokyo|Asia/Tokyo, Los Angeles|America/Los_Angeles, New York|America/New_York"
+        }
+      ],
+      "centerEnd": [
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "automatic": true,
+          "id": "io.github.scrambletools.auto-timezone"
+        },
+        {
+          "id": "omarchy.system-update"
+        }
+      ],
       "left": [
         {
           "id": "omarchy.menu"
@@ -46,27 +67,6 @@
           "id": "omarchy.power"
         }
       ],
-      "centerBegin": [
-        {
-          "id": "omarchy.indicators"
-        },
-        {
-          "id": "omarchy.elsewhen",
-          "zones": "Zurich|Europe/Zurich, Delhi|Asia/Kolkata, Tokyo|Asia/Tokyo, Los Angeles|America/Los_Angeles, New York|America/New_York"
-        }
-      ],
-      "centerEnd": [
-        {
-          "id": "omarchy.weather"
-        },
-        {
-          "id": "io.github.scrambletools.auto-timezone",
-          "automatic": true
-        },
-        {
-          "id": "omarchy.system-update"
-        }
-      ],
       "tray": []
     },
     "position": "top",
@@ -78,15 +78,25 @@
   "disabledPlugins": [
     "omarchy.lock"
   ],
+  "dock": {
+    "pinned": [
+      "org.gnome.Nautilus",
+      "firefox",
+      "com.mitchellh.ghostty",
+      "steam",
+      "omacalc",
+      "omawrite"
+    ]
+  },
   "idle": {
     "lock": 300,
     "screensaver": 150
   },
   "plugins": [
     {
-      "id": "io.github.sirjul1337.lock-explorer",
-      "design": "terminal",
       "boot": "follow",
+      "design": "terminal",
+      "id": "io.github.sirjul1337.lock-explorer",
       "openAs": "full"
     },
     {
