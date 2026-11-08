@@ -22,16 +22,10 @@
           "id": "omarchy.tray"
         },
         {
-          "id": "omarchy.keyboard-layout"
+          "id": "dev.reuk.sysstats"
         },
         {
-          "id": "bitr0t.system-monitor",
-          "chipMode": "minimal",
-          "monitors": [
-            "cpu",
-            "memory",
-            "network"
-          ]
+          "id": "omarchy.keyboard-layout"
         },
         {
           "id": "omarchy.agents"
