@@ -9,3 +9,9 @@ vim.g.snacks_animate = false
 
 vim.o.tabstop = 4
 vim.o.shiftwidth = 4
+
+-- Ghostty already sends 3 wheel events per click; scroll 1 line per event there.
+-- Other terminals (e.g. Windows Terminal in WSL) keep the default ver:3.
+if vim.env.TERM_PROGRAM == "ghostty" or (vim.env.TERM or ""):find("ghostty") then
+  vim.o.mousescroll = "ver:1,hor:2"
+end
