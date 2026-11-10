@@ -23,6 +23,9 @@ odin = "latest"
 # Rolling tag, refreshed by `mise run update` and the Omarchy post-update hook.
 ols = "nightly"
 "npm:neovim" = "latest"
+# Upstream release: the same bw CLI on both distros, where Arch only has
+# it in the AUR.
+bitwarden = "latest"
 
 [bootstrap.packages]
 # Arch
@@ -39,6 +42,7 @@ ols = "nightly"
 "pacman:git" = "latest"
 "pacman:github-cli" = "latest"
 "pacman:glab" = "latest"
+"pacman:go" = "latest"
 "pacman:jq" = "latest"
 "pacman:lazygit" = "latest"
 "pacman:less" = "latest"
