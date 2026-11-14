@@ -85,6 +85,12 @@ cmd_bootstrap() {
     tmp=$(mktemp -d)
     git clone --no-checkout --separate-git-dir="$DOT_DIR" "$url" "$tmp/repo"
     rm -rf "$tmp"
+    # a wrong url would otherwise check some other repo out into $HOME; this
+    # script is the marker, every dotfiles repo it can bootstrap tracks it
+    if ! g cat-file -e HEAD:.local/bin/dot 2>/dev/null; then
+        rm -rf "$DOT_DIR"
+        die "$url doesn't track .local/bin/dot, not a dotfiles repo - nothing changed"
+    fi
     g config status.showUntrackedFiles no
     [[ $url == "$DOT_URL" ]] && g remote set-url --push origin "$DOT_PUSH_URL"
 
