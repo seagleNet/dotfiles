@@ -65,3 +65,7 @@ hl.config({ input = { accel_profile = "flat", touchpad = { natural_scroll = true
 hl.gesture({ fingers = 3, direction = "left", action = "unset" })
 hl.gesture({ fingers = 3, direction = "right", action = "unset" })
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+
+-- Global flat profile above is for mice; give this laptop's touchpad acceleration back.
+-- Device name is machine-specific, so this is a no-op on systems without it.
+hl.device({ name = "elan06a0:00-04f3:3231-touchpad", accel_profile = "adaptive" })
