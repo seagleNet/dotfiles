@@ -8,7 +8,10 @@ return {
     opts = {
       servers = {
         -- Arch ships it as qmlls6; it comes from Qt, not Mason.
-        qmlls = { cmd = { "qmlls6" }, mason = false },
+        -- -I: Omarchy shell plugins import qs.Commons, qs.Ui, ...; the folder's
+        -- `qs` links to /usr/share/omarchy/shell (outside any plugin repo,
+        -- since `omarchy plugin add` refuses symlinks in a plugin).
+        qmlls = { cmd = { "qmlls6", "-I", vim.fn.expand("~/.local/share/omarchy-qml") }, mason = false },
       },
     },
   },
