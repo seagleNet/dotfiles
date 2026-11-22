@@ -23,6 +23,9 @@
           "id": "omarchy.weather"
         },
         {
+          "id": "seaglenet.tminus"
+        },
+        {
           "id": "omarchy.media"
         },
         {
@@ -107,8 +110,8 @@
       "openAs": "full"
     },
     {
-      "id": "seaglenet.power-saver",
-      "dim": 60
+      "dim": 60,
+      "id": "seaglenet.power-saver"
     }
   ],
   "version": 1
